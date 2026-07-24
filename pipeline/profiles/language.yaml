@@ -1,0 +1,41 @@
+name: language
+description: Language learning courses, grammar explanations, and immersion content.
+concept_label: grammar points
+derived: [synthesis, glossary]
+
+distill_guidance: |
+  Two languages are in play: the language being taught and the language of instruction.
+  Always mark which is which. Give target-language material in the target language first,
+  then the gloss — never only the translation, which discards the thing being learned.
+
+  Transcription of the target language is the weak point here. Auto-captions in the
+  instruction language will mangle target-language words badly. Flag anything you are not
+  confident about rather than inventing a plausible spelling.
+
+sections:
+  - heading: TL;DR
+    guidance: Two or three sentences. What this lesson teaches.
+
+  - heading: Vocabulary
+    guidance: >
+      Target-language items with gloss, and register or connotation where the instructor
+      gives it. Format `target — gloss (note)`. Include the timestamp for items discussed
+      at length.
+
+  - heading: Grammar points
+    guidance: >
+      Each rule as a `###` subheading: the pattern, when it applies, and the instructor's
+      example sentences kept verbatim in the target language.
+
+  - heading: Usage & idiom
+    guidance: >
+      Things that are correct grammatically but wrong in practice, politeness levels,
+      regional variation, and anything the instructor frames as how people actually speak.
+
+  - heading: Pronunciation notes
+    guidance: >
+      Sounds, stress, and tone as described. Audio detail is lost in transcript, so capture
+      only what was stated in words and flag the rest as needing the audio.
+
+  - heading: Drills
+    guidance: Exercises or practice patterns given. Omit if none.

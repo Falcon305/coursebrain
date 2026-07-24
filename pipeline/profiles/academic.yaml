@@ -1,0 +1,38 @@
+name: academic
+description: University lectures, seminar series, conference talks, and research walkthroughs.
+concept_label: concepts
+derived: [synthesis]
+
+distill_guidance: |
+  Distinguish what the lecturer asserts from what they attribute to someone else, and
+  from what they present as contested. Losing that distinction turns a lecture into a
+  set of flat facts and strips out exactly what makes it scholarship.
+
+  Preserve names, dates, and citations exactly as spoken. Auto-captions mangle proper
+  nouns badly; if a name is clearly garbled and you cannot recover it with confidence,
+  transcribe what was said and flag it rather than guessing.
+
+sections:
+  - heading: TL;DR
+    guidance: Two or three sentences. The lecture's argument, not just its topic.
+
+  - heading: Key claims
+    guidance: >
+      The substantive assertions, each as a `###` subheading with a timestamp. Mark each as
+      the lecturer's own position, an attributed view, or a contested question.
+
+  - heading: Definitions & terminology
+    guidance: Technical terms introduced, defined as the lecturer defined them.
+
+  - heading: Evidence & sources
+    guidance: >
+      Studies, texts, data, and thinkers cited, with whatever identifying detail was given.
+      Note where the lecturer flags evidence as weak or disputed.
+
+  - heading: Frameworks & models
+    guidance: Conceptual structures, taxonomies, and models presented. Omit if none.
+
+  - heading: Exam-relevant points
+    guidance: >
+      Anything the lecturer signals as important, likely to be assessed, or commonly
+      misunderstood. Omit if the lecture gives no such signals.

@@ -1,0 +1,27 @@
+name: general
+description: Default profile. Interviews, documentaries, talks, and anything without a better fit.
+concept_label: concepts
+derived: [synthesis]
+
+distill_guidance: |
+  Keep the speaker's framing rather than flattening everything into neutral summary.
+  How someone argues is usually as informative as what they conclude.
+
+sections:
+  - heading: TL;DR
+    guidance: Two or three sentences covering the substance, not just the subject.
+
+  - heading: Concepts
+    guidance: >
+      Each idea as a `###` subheading with a timestamp: what it is and why it matters here.
+
+  - heading: Claims & evidence
+    guidance: >
+      Substantive assertions and whatever support was offered. Note explicitly where a claim
+      is asserted without support.
+
+  - heading: Practical takeaways
+    guidance: Anything directly actionable. Omit the section if the material is not actionable.
+
+  - heading: Gotchas
+    guidance: Caveats, common misreadings, and limits the speaker names. Omit if none.

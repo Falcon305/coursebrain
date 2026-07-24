@@ -1,0 +1,36 @@
+name: programming
+description: Software courses, framework tutorials, language walkthroughs, system design talks.
+concept_label: concepts
+derived: [synthesis]
+
+distill_guidance: |
+  Auto-generated captions mangle identifiers: "useEffect" becomes "use effect",
+  "async await" becomes "a sync await". Repair them against the glossary when the
+  intent is unambiguous, and leave them alone when it is not.
+
+  Never present transcript-derived code as authoritative. The companion repository
+  is ground truth for code; your job is the reasoning the repository cannot express.
+
+sections:
+  - heading: TL;DR
+    guidance: Two or three sentences. What this episode teaches and why it matters.
+
+  - heading: Concepts
+    guidance: >
+      Each concept as its own `###` subheading. What it is, why it exists, what problem
+      it solves. Include a timestamp link on the line where the concept is introduced.
+
+  - heading: Code & APIs
+    guidance: >
+      Exact identifiers, signatures, config keys and CLI flags as stated. Mark the whole
+      section `[transcript-derived]` and keep snippets short — they are a pointer to the
+      companion repo, not a replacement for it.
+
+  - heading: Decisions & rationale
+    guidance: >
+      Why the instructor chose one approach over another, and what tradeoff they named.
+      This is the highest-value section: source code shows what was chosen, only the talk
+      explains why. Capture rejected alternatives too.
+
+  - heading: Gotchas
+    guidance: Pitfalls, version-specific behaviour, footguns, and anything called out as surprising.

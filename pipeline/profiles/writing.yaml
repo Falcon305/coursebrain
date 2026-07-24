@@ -1,0 +1,45 @@
+name: writing
+description: Writing craft, rhetoric, storytelling, copywriting, editing, and style courses.
+concept_label: principles
+derived: [synthesis, style]
+
+distill_guidance: |
+  This profile has an unusual goal. The point is not to summarise what the instructor
+  said about writing — it is to extract guidance specific enough that someone could
+  write by it afterwards. "Be concise" is worthless. "Cut the first sentence of every
+  paragraph you draft, then see whether the paragraph still needs an opener" is usable.
+
+  Quote exemplars verbatim, always. Style is transmitted by specimen, not by
+  description, and a paraphrased example has destroyed the exact thing worth keeping.
+  If the instructor reads a sentence aloud and praises or condemns it, that sentence
+  goes in the notes word for word.
+
+  Prefer the instructor's own phrasing for rules. Their wording is part of the craft.
+
+sections:
+  - heading: TL;DR
+    guidance: Two or three sentences. What craft problem this episode addresses.
+
+  - heading: Principles
+    guidance: >
+      The stated rules of craft, each as a `###` subheading, in the instructor's own words
+      where possible. Follow each with what it actually means in practice.
+
+  - heading: Techniques
+    guidance: >
+      Concrete, repeatable moves a writer can apply to a draft. Each must be specific enough
+      to act on without re-watching. Name the situation the technique is for.
+
+  - heading: Exemplars
+    guidance: >
+      Verbatim quotes of writing the instructor praises or criticises, each with a timestamp
+      and one line on what makes it work or fail. Never paraphrase. If a passage is long,
+      quote the part that carries the effect.
+
+  - heading: Anti-patterns
+    guidance: What the instructor tells you not to do, and the failure it produces.
+
+  - heading: Revision moves
+    guidance: >
+      Anything about the editing pass specifically: what to cut, what to check for, what
+      order to work in. Omit if the episode does not cover revision.
