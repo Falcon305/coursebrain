@@ -10,5 +10,6 @@ htmlcov/
 uv.lock
 
 courses/*/.cache/
-courses/*/index.db
-courses/*/lancedb/
+
+# search indexes: rebuildable offline from the notes, so never committed
+.brain/

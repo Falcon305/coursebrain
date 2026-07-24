@@ -231,7 +231,7 @@ def render_note(episode: Episode, course_id: str, profile: Profile, d: Distillat
         f"video_id: {episode.video_id}",
         f"url: {episode.url}",
         f"title: {_yaml_str(episode.title)}",
-        f"duration: {format_timestamp(episode.duration)}",
+        f"duration: {_yaml_str(format_timestamp(episode.duration))}",
         f"source: {episode.caption_source}",
         f"distilled_with: {d.model} @ {d.prompt_version}",
     ]

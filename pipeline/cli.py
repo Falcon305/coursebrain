@@ -4,11 +4,15 @@ import argparse
 import sys
 
 from .build import build_course
+from .evals import run_eval, write_template
 from .manifest import Manifest
 from .models import slugify
-from .paths import CourseConfig, CoursePaths, list_courses
+from .paths import BrainPaths, CourseConfig, CoursePaths, list_courses
 from .profiles import Profile, list_profiles
+from .retrieval import search, vectors_available
 from .stages.distill import DEFAULT_MODEL, api_key_present
+from .stages.index import index_all
+from .stages.verify import verify_course
 
 
 def cmd_init(args: argparse.Namespace) -> int:
@@ -65,6 +69,70 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_index(args: argparse.Namespace) -> int:
+    index_all(use_vectors=not args.no_vectors)
+    return 0
+
+
+def cmd_ask(args: argparse.Namespace) -> int:
+    brain = BrainPaths()
+    if not brain.index_db.exists():
+        print("no index yet — run: course index", file=sys.stderr)
+        return 1
+    hits = search(
+        brain.index_db,
+        brain.lancedb,
+        args.query,
+        k=args.k,
+        course=args.course,
+        use_vectors=not args.no_vectors,
+    )
+    if not hits:
+        print("no matches")
+        return 0
+    for i, hit in enumerate(hits, start=1):
+        print(f"\n{i}. {hit.chunk.label}")
+        print(f"   {hit.chunk.url}   [{'+'.join(hit.sources)}]")
+        body = " ".join(hit.chunk.text.split())
+        print(f"   {body[: args.chars]}{'…' if len(body) > args.chars else ''}")
+    return 0
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    targets = [args.id] if args.id else list_courses()
+    failed = False
+    for course_id in targets:
+        report = verify_course(course_id)
+        if report.ok:
+            print(f"{course_id}: ok ({report.checked} note(s))")
+        else:
+            failed = True
+            print(f"{course_id}: {len(report.problems)} problem(s) in {report.checked} note(s)")
+            for problem in report.problems:
+                print(f"  - {problem}")
+    return 1 if failed else 0
+
+
+def cmd_eval(args: argparse.Namespace) -> int:
+    if args.init:
+        path = CoursePaths.for_course(args.id).evals / "questions.yaml"
+        if path.exists() and not args.force:
+            print(f"{path} already exists", file=sys.stderr)
+            return 1
+        write_template(path)
+        print(f"wrote {path} — fill it in, then run: course eval {args.id}")
+        return 0
+
+    result = run_eval(args.id, k=args.k, use_vectors=not args.no_vectors)
+    if not result.total:
+        print("no eval questions found — create some with: course eval <id> --init")
+        return 0
+    print(result.line(args.k))
+    for miss in result.misses:
+        print(f"  missed: {miss}")
+    return 0
+
+
 def cmd_profiles(args: argparse.Namespace) -> int:
     for name in list_profiles():
         profile = Profile.load(name)
@@ -95,6 +163,30 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true", help="ignore cached distillations")
     p.add_argument("--fetch-only", action="store_true", help="stop after transcripts")
     p.set_defaults(func=cmd_build)
+
+    p = sub.add_parser("index", help="rebuild INDEX.md, CONCEPTS.md, BRAIN.md, and the search index")
+    p.add_argument("--no-vectors", action="store_true", help="keyword index only")
+    p.set_defaults(func=cmd_index)
+
+    p = sub.add_parser("ask", help="hybrid search across every course")
+    p.add_argument("query")
+    p.add_argument("-k", type=int, default=5, help="results to return")
+    p.add_argument("--course", default=None, help="restrict to one course")
+    p.add_argument("--chars", type=int, default=400, help="excerpt length")
+    p.add_argument("--no-vectors", action="store_true")
+    p.set_defaults(func=cmd_ask)
+
+    p = sub.add_parser("verify", help="check notes for structural problems")
+    p.add_argument("id", nargs="?", help="course id (default: all)")
+    p.set_defaults(func=cmd_verify)
+
+    p = sub.add_parser("eval", help="score retrieval against a question set")
+    p.add_argument("id", nargs="?", help="course id (default: all)")
+    p.add_argument("-k", type=int, default=5)
+    p.add_argument("--init", action="store_true", help="write a starter question set")
+    p.add_argument("--force", action="store_true")
+    p.add_argument("--no-vectors", action="store_true")
+    p.set_defaults(func=cmd_eval)
 
     p = sub.add_parser("list", help="list courses")
     p.set_defaults(func=cmd_list)

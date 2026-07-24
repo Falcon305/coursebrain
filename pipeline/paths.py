@@ -8,6 +8,29 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 COURSES_DIR = REPO_ROOT / "courses"
+BRAIN_DIR = REPO_ROOT / ".brain"
+
+
+@dataclass(frozen=True)
+class BrainPaths:
+    """Cross-course index. Derivable from the notes, so never committed."""
+
+    root: Path = BRAIN_DIR
+
+    @property
+    def index_db(self) -> Path:
+        return self.root / "index.db"
+
+    @property
+    def lancedb(self) -> Path:
+        return self.root / "lancedb"
+
+    @property
+    def brain_md(self) -> Path:
+        return self.root.parent / "BRAIN.md"
+
+    def ensure(self) -> None:
+        self.root.mkdir(parents=True, exist_ok=True)
 
 
 @dataclass
