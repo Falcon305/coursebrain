@@ -6,7 +6,7 @@ from typing import Any
 
 import yaml
 
-PROFILES_DIR = Path(__file__).resolve().parent / "profiles"
+PROFILES_DIR = Path(__file__).resolve().parent
 
 COMMON_SECTIONS = [
     {

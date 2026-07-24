@@ -1,13 +1,24 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from ..models import Chapter, Episode
 from ..paths import CoursePaths
 
-YTDLP = "yt-dlp"
+
+def _resolve_ytdlp() -> str:
+    # prefer the one installed alongside the running interpreter over whatever is on PATH
+    local = Path(sys.executable).parent / "yt-dlp"
+    if local.exists():
+        return str(local)
+    return shutil.which("yt-dlp") or "yt-dlp"
+
+
+YTDLP = _resolve_ytdlp()
 
 
 class FetchError(RuntimeError):
