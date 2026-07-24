@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ..notes import Chunk, Note, load_notes
 from ..paths import BrainPaths, CoursePaths, list_courses
-from ..retrieval import build_keyword_index, build_vector_index, vectors_available
+from ..retrieval import build_index, vectors_available
 
 
 def render_course_index(course_id: str, title: str, notes: list[Note]) -> str:
@@ -94,13 +94,12 @@ def index_all(courses_dir: Path | None = None, use_vectors: bool = True, log=pri
         log(f"{course_id}: {count} note(s), {len(chunks)} chunk(s)")
 
     brain.brain_md.write_text(render_brain(summaries), encoding="utf-8")
-    build_keyword_index(brain.index_db, all_chunks)
+    indexed, embedded = build_index(brain.index_db, all_chunks, use_vectors=use_vectors)
 
-    if use_vectors and vectors_available():
-        n = build_vector_index(brain.lancedb, all_chunks)
-        log(f"embedded {n} chunk(s)")
-    elif use_vectors:
-        log("vector search unavailable (install the 'rag' extra) — keyword only")
+    if use_vectors and not vectors_available():
+        log("semantic search unavailable (install the 'rag' extra) — keyword only")
+    elif embedded:
+        log(f"embedded {embedded} chunk(s)")
 
-    log(f"indexed {len(all_chunks)} chunk(s) across {len(summaries)} course(s)")
-    return len(all_chunks)
+    log(f"indexed {indexed} chunk(s) across {len(summaries)} course(s)")
+    return indexed

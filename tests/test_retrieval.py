@@ -2,7 +2,7 @@ import pytest
 
 from pipeline.notes import Chunk, parse_note, split_frontmatter
 from pipeline.retrieval import (
-    build_keyword_index,
+    build_index,
     fts_query,
     keyword_search,
     reciprocal_rank_fusion,
@@ -107,7 +107,7 @@ def test_fts_query_empty_input():
 
 def test_keyword_index_roundtrip(tmp_path, note):
     db = tmp_path / "index.db"
-    assert build_keyword_index(db, note.chunks) == len(note.chunks)
+    assert build_index(db, note.chunks, use_vectors=False)[0] == len(note.chunks)
     hits = keyword_search(db, "cleanup subscriptions", k=5)
     assert hits
     assert any("Effect cleanup" in h.heading for h in hits)
@@ -115,7 +115,7 @@ def test_keyword_index_roundtrip(tmp_path, note):
 
 def test_keyword_search_filters_by_course(tmp_path, note):
     db = tmp_path / "index.db"
-    build_keyword_index(db, note.chunks)
+    build_index(db, note.chunks, use_vectors=False)
     assert keyword_search(db, "cleanup", k=5, course="react")
     assert keyword_search(db, "cleanup", k=5, course="other") == []
 
@@ -126,7 +126,7 @@ def test_keyword_search_on_missing_db(tmp_path):
 
 def test_keyword_search_does_not_crash_on_fts_syntax(tmp_path, note):
     db = tmp_path / "index.db"
-    build_keyword_index(db, note.chunks)
+    build_index(db, note.chunks, use_vectors=False)
     for query in ['"unbalanced', "foo NEAR/", "a AND OR b", "*", "()"]:
         keyword_search(db, query, k=3)
 
@@ -159,7 +159,7 @@ def test_rrf_empty():
 
 def test_search_without_vectors_still_works(tmp_path, note):
     db = tmp_path / "index.db"
-    build_keyword_index(db, note.chunks)
-    hits = search(db, tmp_path / "lancedb", "stale closures", k=3, use_vectors=False)
+    build_index(db, note.chunks, use_vectors=False)
+    hits = search(db, "stale closures", k=3, use_vectors=False)
     assert hits
     assert hits[0].sources == ("keyword",)

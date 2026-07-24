@@ -13,6 +13,11 @@ uv pip install -e ".[dev]"      # core; add [rag] for semantic search
 Stages live in `pipeline/stages/` and run in order: fetch → normalize → segment → distill → index
 → verify. Each reads and writes disk and skips work already done, so re-running is cheap.
 
+**Distillation has two paths.** Agent mode (`prepare` → agent writes bodies → `assemble`) is the
+default and needs no API key — inside Claude Code the agent *is* the model. `build` is the
+unattended API path for running outside an agent session. Both converge on the same
+`render_note()`, so notes are identical whichever produced them.
+
 ## Conventions that matter
 
 **Anything irreplaceable is committed; anything derivable is ignored.** Raw captions under
@@ -36,6 +41,10 @@ against realistic fixtures, not hand-simplified ones.
 
 **Frontmatter is generated mechanically, never by the model.** The model writes the body only. Quote
 values that YAML would misread — an unquoted `15:30` parses as the integer 930.
+
+**Keyword and vector indexes share one SQLite file.** That was a deliberate move away from a
+separate vector store: one file means no sync problem and nothing to corrupt independently.
+Embeddings are static (model2vec, no PyTorch), so `course index` runs offline in seconds.
 
 ## Cost
 

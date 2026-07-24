@@ -19,11 +19,8 @@ class BrainPaths:
 
     @property
     def index_db(self) -> Path:
+        """Keyword and vector indexes share one file — nothing to keep in sync."""
         return self.root / "index.db"
-
-    @property
-    def lancedb(self) -> Path:
-        return self.root / "lancedb"
 
     @property
     def brain_md(self) -> Path:

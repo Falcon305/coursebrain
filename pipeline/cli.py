@@ -3,7 +3,8 @@ from __future__ import annotations
 import argparse
 import sys
 
-from .build import build_course
+from . import work
+from .build import assemble_course, build_course, prepare_course
 from .evals import run_eval, write_template
 from .manifest import Manifest
 from .models import slugify
@@ -40,9 +41,47 @@ def cmd_init(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_prepare(args: argparse.Namespace) -> int:
+    report = prepare_course(
+        args.id, limit=args.limit, only=args.only, force=args.force
+    )
+    paths = CoursePaths.for_course(args.id)
+    todo = work.pending(paths)
+    if todo:
+        print(f"\n{len(todo)} episode(s) waiting to be distilled:")
+        for item in todo:
+            print(f"  read  {item.task}")
+            print(f"  write {item.body}")
+        print("\nthen run: course assemble " + args.id)
+    return 1 if report.failed else 0
+
+
+def cmd_pending(args: argparse.Namespace) -> int:
+    targets = [args.id] if args.id else list_courses()
+    total = 0
+    for course_id in targets:
+        todo = work.pending(CoursePaths.for_course(course_id))
+        total += len(todo)
+        for item in todo:
+            print(f"{course_id}\t{item.episode:02d}\t{item.task}\t{item.body}")
+    if not total:
+        print("nothing pending", file=sys.stderr)
+    return 0
+
+
+def cmd_assemble(args: argparse.Namespace) -> int:
+    report = assemble_course(args.id)
+    return 1 if report.failed else 0
+
+
 def cmd_build(args: argparse.Namespace) -> int:
     if not args.fetch_only and not api_key_present():
-        print("no ANTHROPIC_API_KEY set — run with --fetch-only, or export a key", file=sys.stderr)
+        print(
+            "no ANTHROPIC_API_KEY set.\n"
+            "  'course build' calls the API directly. Inside Claude Code you don't need it —\n"
+            "  use 'course prepare' / 'course assemble' instead, or add --fetch-only here.",
+            file=sys.stderr,
+        )
         return 1
     report = build_course(
         args.id,
@@ -81,7 +120,6 @@ def cmd_ask(args: argparse.Namespace) -> int:
         return 1
     hits = search(
         brain.index_db,
-        brain.lancedb,
         args.query,
         k=args.k,
         course=args.course,
@@ -155,7 +193,22 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true")
     p.set_defaults(func=cmd_init)
 
-    p = sub.add_parser("build", help="fetch, normalize, and distill a course")
+    p = sub.add_parser("prepare", help="fetch transcripts and stage episodes for distilling")
+    p.add_argument("id")
+    p.add_argument("--limit", type=int, default=None, help="only the first N videos")
+    p.add_argument("--only", type=int, default=None, help="only episode N")
+    p.add_argument("--force", action="store_true", help="restage episodes that already have notes")
+    p.set_defaults(func=cmd_prepare)
+
+    p = sub.add_parser("pending", help="list staged episodes awaiting a note (tab-separated)")
+    p.add_argument("id", nargs="?")
+    p.set_defaults(func=cmd_pending)
+
+    p = sub.add_parser("assemble", help="turn written bodies into finished notes")
+    p.add_argument("id")
+    p.set_defaults(func=cmd_assemble)
+
+    p = sub.add_parser("build", help="unattended end-to-end build (needs ANTHROPIC_API_KEY)")
     p.add_argument("id")
     p.add_argument("--limit", type=int, default=None, help="only the first N videos")
     p.add_argument("--only", type=int, default=None, help="only episode N")

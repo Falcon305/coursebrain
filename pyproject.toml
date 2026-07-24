@@ -13,11 +13,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Hybrid retrieval. Pulls torch (~2GB) via sentence-transformers.
+# Semantic half of hybrid search. Vectors live in the same SQLite file as the
+# keyword index, and model2vec is static-embedding (no torch) — ~100MB, not ~2GB.
 rag = [
-    "lancedb>=0.15.0",
-    "sentence-transformers>=3.0.0",
-    "pyarrow>=17.0.0",
+    "sqlite-vec>=0.1.9",
+    "model2vec>=0.4.0",
 ]
 # Durable resume + per-node retry for the distill graph.
 orchestration = [

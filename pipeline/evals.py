@@ -83,7 +83,6 @@ def run_eval(
     for case in cases:
         hits = search(
             brain.index_db,
-            brain.lancedb,
             case.question,
             k=k,
             course=case.course,

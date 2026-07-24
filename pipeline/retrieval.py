@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import sqlite3
 from dataclasses import dataclass
@@ -8,7 +9,8 @@ from typing import Any, Iterable
 
 from .notes import Chunk
 
-EMBED_MODEL = "BAAI/bge-small-en-v1.5"
+EMBED_MODEL = "minishlab/potion-base-8M"
+EMBED_DIM = 256
 RRF_K = 60
 WORD_RE = re.compile(r"[\w']+", re.UNICODE)
 
@@ -51,26 +53,92 @@ def _row_to_chunk(row: sqlite3.Row) -> Chunk:
     )
 
 
-def build_keyword_index(db_path: Path, chunks: Iterable[Chunk]) -> int:
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+# --- vectors: same file as the keyword index, so there is nothing to keep in sync ---
+
+def vectors_available() -> bool:
+    try:
+        import model2vec  # noqa: F401
+        import sqlite_vec  # noqa: F401
+    except ImportError:
+        return False
+    return hasattr(sqlite3.Connection, "enable_load_extension")
+
+
+def _load_vec(conn: sqlite3.Connection) -> bool:
+    if not vectors_available():
+        return False
+    import sqlite_vec
+
+    try:
+        conn.enable_load_extension(True)
+        sqlite_vec.load(conn)
+        conn.enable_load_extension(False)
+        return True
+    except (AttributeError, sqlite3.OperationalError):
+        return False
+
+
+def _embedder() -> Any:
+    if not hasattr(_embedder, "_model"):
+        # keep the hub's progress bars and token warnings out of CLI output
+        os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+        os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+        from model2vec import StaticModel
+
+        _embedder._model = StaticModel.from_pretrained(EMBED_MODEL)  # type: ignore[attr-defined]
+    return _embedder._model  # type: ignore[attr-defined]
+
+
+def embed(texts: list[str]) -> list[list[float]]:
+    vectors = _embedder().encode(texts)
+    out = []
+    for v in vectors:
+        norm = float((v * v).sum()) ** 0.5 or 1.0
+        out.append([float(x) / norm for x in v])
+    return out
+
+
+def _connect(db_path: Path) -> tuple[sqlite3.Connection, bool]:
     conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    return conn, _load_vec(conn)
+
+
+def build_index(db_path: Path, chunks: Iterable[Chunk], use_vectors: bool = True) -> tuple[int, int]:
+    chunks = list(chunks)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn, has_vec = _connect(db_path)
+    embedded = 0
     try:
         conn.executescript(SCHEMA)
         conn.execute("DELETE FROM chunks")
-        rows = [
-            (
-                c.text, c.heading, c.title, c.course, str(c.episode), c.video_id,
-                c.note_path, "" if c.timestamp is None else str(c.timestamp), c.layer,
+        for chunk in chunks:
+            conn.execute(
+                "INSERT INTO chunks (text, heading, title, course, episode, video_id, "
+                "note_path, timestamp, layer) VALUES (?,?,?,?,?,?,?,?,?)",
+                (
+                    chunk.text, chunk.heading, chunk.title, chunk.course, str(chunk.episode),
+                    chunk.video_id, chunk.note_path,
+                    "" if chunk.timestamp is None else str(chunk.timestamp), chunk.layer,
+                ),
             )
-            for c in chunks
-        ]
-        conn.executemany(
-            "INSERT INTO chunks (text, heading, title, course, episode, video_id, "
-            "note_path, timestamp, layer) VALUES (?,?,?,?,?,?,?,?,?)",
-            rows,
-        )
+
+        if has_vec and use_vectors and chunks:
+            import sqlite_vec
+
+            conn.execute("DROP TABLE IF EXISTS vec_chunks")
+            conn.execute(
+                f"CREATE VIRTUAL TABLE vec_chunks USING vec0(embedding float[{EMBED_DIM}])"
+            )
+            rowids = [r[0] for r in conn.execute("SELECT rowid FROM chunks ORDER BY rowid")]
+            vectors = embed([f"{c.heading}\n{c.text}" for c in chunks])
+            conn.executemany(
+                "INSERT INTO vec_chunks(rowid, embedding) VALUES (?, ?)",
+                [(rid, sqlite_vec.serialize_float32(v)) for rid, v in zip(rowids, vectors)],
+            )
+            embedded = len(vectors)
         conn.commit()
-        return len(rows)
+        return len(chunks), embedded
     finally:
         conn.close()
 
@@ -81,13 +149,9 @@ def keyword_search(db_path: Path, query: str, k: int, course: str | None = None)
     match = fts_query(query)
     if not match:
         return []
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
+    conn, _ = _connect(db_path)
     try:
-        sql = (
-            "SELECT *, bm25(chunks, 1.0, 2.0, 1.5) AS rank FROM chunks "
-            "WHERE chunks MATCH ?"
-        )
+        sql = "SELECT *, bm25(chunks, 1.0, 2.0, 1.5) AS rank FROM chunks WHERE chunks MATCH ?"
         params: list[Any] = [match]
         if course:
             sql += " AND course = ?"
@@ -101,90 +165,39 @@ def keyword_search(db_path: Path, query: str, k: int, course: str | None = None)
         conn.close()
 
 
-def _embedder() -> Any:
-    from sentence_transformers import SentenceTransformer
-
-    if not hasattr(_embedder, "_model"):
-        _embedder._model = SentenceTransformer(EMBED_MODEL)  # type: ignore[attr-defined]
-    return _embedder._model  # type: ignore[attr-defined]
-
-
-def vectors_available() -> bool:
-    try:
-        import lancedb  # noqa: F401
-        import sentence_transformers  # noqa: F401
-    except ImportError:
-        return False
-    return True
-
-
-def build_vector_index(db_dir: Path, chunks: list[Chunk]) -> int:
-    if not vectors_available() or not chunks:
-        return 0
-    import lancedb
-
-    model = _embedder()
-    texts = [f"{c.heading}\n{c.text}" for c in chunks]
-    vectors = model.encode(texts, normalize_embeddings=True, show_progress_bar=False)
-    rows = [
-        {
-            "vector": vectors[i].tolist(),
-            "text": c.text,
-            "heading": c.heading,
-            "title": c.title,
-            "course": c.course,
-            "episode": c.episode,
-            "video_id": c.video_id,
-            "note_path": c.note_path,
-            "timestamp": -1 if c.timestamp is None else c.timestamp,
-            "layer": c.layer,
-        }
-        for i, c in enumerate(chunks)
-    ]
-    db_dir.mkdir(parents=True, exist_ok=True)
-    db = lancedb.connect(str(db_dir))
-    db.create_table("chunks", data=rows, mode="overwrite")
-    return len(rows)
-
-
-def vector_search(db_dir: Path, query: str, k: int, course: str | None = None) -> list[Chunk]:
-    if not vectors_available() or not db_dir.exists():
+def vector_search(db_path: Path, query: str, k: int, course: str | None = None) -> list[Chunk]:
+    if not db_path.exists() or not vectors_available():
         return []
-    import lancedb
-
-    try:
-        table = lancedb.connect(str(db_dir)).open_table("chunks")
-    except Exception:
+    conn, has_vec = _connect(db_path)
+    if not has_vec:
+        conn.close()
         return []
-    vector = _embedder().encode([query], normalize_embeddings=True)[0].tolist()
-    search = table.search(vector).limit(k)
-    if course:
-        search = search.where(f"course = '{course}'")
-    out: list[Chunk] = []
-    for row in search.to_list():
-        out.append(
-            Chunk(
-                course=row["course"],
-                episode=int(row["episode"]),
-                video_id=row["video_id"],
-                note_path=row["note_path"],
-                title=row["title"],
-                heading=row["heading"],
-                text=row["text"],
-                timestamp=None if row["timestamp"] < 0 else int(row["timestamp"]),
-                layer=row["layer"],
-            )
-        )
-    return out
+    try:
+        import sqlite_vec
+
+        vector = sqlite_vec.serialize_float32(embed([query])[0])
+        # over-fetch when filtering by course: the knn happens before the join
+        limit = k * 5 if course else k
+        rows = conn.execute(
+            "SELECT c.*, v.distance FROM vec_chunks v JOIN chunks c ON c.rowid = v.rowid "
+            "WHERE v.embedding MATCH ? AND k = ? ORDER BY v.distance",
+            (vector, limit),
+        ).fetchall()
+        out = [_row_to_chunk(r) for r in rows]
+        if course:
+            out = [c for c in out if c.course == course]
+        return out[:k]
+    except sqlite3.OperationalError:
+        return []
+    finally:
+        conn.close()
 
 
 def _key(chunk: Chunk) -> tuple[str, int, str]:
     return (chunk.course, chunk.episode, chunk.heading)
 
 
-def reciprocal_rank_fusion(
-    ranked: dict[str, list[Chunk]], k: int, rrf_k: int = RRF_K
-) -> list[Hit]:
+def reciprocal_rank_fusion(ranked: dict[str, list[Chunk]], k: int, rrf_k: int = RRF_K) -> list[Hit]:
     scores: dict[tuple[str, int, str], float] = {}
     chunks: dict[tuple[str, int, str], Chunk] = {}
     sources: dict[tuple[str, int, str], list[str]] = {}
@@ -197,15 +210,11 @@ def reciprocal_rank_fusion(
             sources.setdefault(key, []).append(source)
 
     ordered = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))
-    return [
-        Hit(chunk=chunks[key], score=score, sources=tuple(sources[key]))
-        for key, score in ordered[:k]
-    ]
+    return [Hit(chunk=chunks[k2], score=s, sources=tuple(sources[k2])) for k2, s in ordered[:k]]
 
 
 def search(
     index_db: Path,
-    lancedb_dir: Path,
     query: str,
     k: int = 5,
     course: str | None = None,
@@ -213,6 +222,8 @@ def search(
     use_vectors: bool = True,
 ) -> list[Hit]:
     ranked = {"keyword": keyword_search(index_db, query, pool, course)}
-    if use_vectors and vectors_available():
-        ranked["vector"] = vector_search(lancedb_dir, query, pool, course)
+    if use_vectors:
+        hits = vector_search(index_db, query, pool, course)
+        if hits:
+            ranked["vector"] = hits
     return reciprocal_rank_fusion(ranked, k)
