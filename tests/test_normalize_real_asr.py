@@ -1,7 +1,8 @@
-"""Dedup tested against real YouTube ASR, not a hand-simplified fixture.
+"""Dedup tested against real YouTube ASR structure, not a hand-simplified fixture.
 
-`tests/fixtures/youtube_asr.en.vtt` is an unmodified excerpt of what YouTube
-actually serves: a rolling window that repeats each line across consecutive cues,
+`tests/fixtures/youtube_asr.en.vtt` reproduces exactly what YouTube serves — cue
+timings, tags and layout taken byte for byte from a real auto-captioned video, with
+only the words swapped for filler so no third-party transcript ships here. It has: a rolling window that repeats each line across consecutive cues,
 inline `<00:00:00.240><c>word</c>` timing tags, 10ms transition cues, and a
 leading space-only line inside each cue. Every one of those has broken this
 parser at some point, and a simplified fixture passes while real captions fail.
@@ -66,7 +67,7 @@ def test_the_rolling_window_is_actually_collapsed(raw, segments):
 def test_first_line_of_the_first_cue_is_not_lost(segments):
     # a space-only line follows the timing line; treating it as a terminator
     # silently dropped the opening words of every cue
-    assert segments[0].text.startswith("You can have the most gripping plot")
+    assert segments[0].text.startswith("the quick brown fox")
 
 
 def test_timestamps_are_monotonic_and_sane(segments):
@@ -77,9 +78,9 @@ def test_timestamps_are_monotonic_and_sane(segments):
 
 def test_text_reads_as_continuous_prose(segments):
     text = to_plain_text(segments)
-    assert "gripping plot" in text
-    # a word repeated by the rolling window must appear once, not three times
-    assert text.count("most gripping plot") == 1
+    assert "quick brown fox" in text
+    # a phrase repeated by the rolling window must appear once, not three times
+    assert text.count("the quick brown fox") == 1
 
 
 def test_no_word_is_tripled(segments):
