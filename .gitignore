@@ -9,8 +9,9 @@ htmlcov/
 .env
 uv.lock
 
-courses/*/.cache/
-courses/*/.work/
-
-# search indexes: rebuildable offline from the notes, so never committed
+# Your courses are yours. They contain captions from third-party videos, so this
+# repository ships the tool, not anyone's library.
+courses/
+BRAIN.md
+.claude/skills/
 .brain/
