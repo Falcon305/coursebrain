@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 from coursebrain.cli import app
 from coursebrain.notes import Chunk
 from coursebrain.paths import BrainPaths, CourseConfig, CoursePaths
-from coursebrain.retrieval import build_index
+from coursebrain.retrieval import build_index, vectors_available
 
 runner = CliRunner()
 
@@ -297,5 +297,12 @@ def test_doctor_exits_nonzero_when_something_is_broken(workspace):
     assert invoke("doctor").exit_code == 1  # no search index yet
 
 
+@pytest.mark.skipif(not vectors_available(), reason="doctor rightly flags the missing 'rag' extra")
 def test_doctor_passes_once_the_index_exists(indexed):
     assert invoke("doctor").exit_code == 0
+
+
+def test_doctor_still_reports_the_index_once_built(indexed):
+    # holds with or without the rag extra, unlike the exit code
+    checks = {c["check"]: c for c in json.loads(invoke("doctor", "--json").output)}
+    assert checks["search index"]["ok"] is True

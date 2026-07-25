@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -23,8 +24,10 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv python install 3.12
-      - run: uv pip install --system -e ".[rag]" ruff mypy types-PyYAML
+      # a venv, not --system: runner Pythons are externally managed and reject it
+      - run: uv venv --python 3.12
+      - run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - run: uv pip install -e ".[rag]" ruff mypy types-PyYAML
       # no --fix in CI: violations must fail rather than be silently repaired
       - run: ruff check --no-fix .
       - run: ruff format --check .
@@ -42,10 +45,10 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv python install ${{ matrix.python }}
-      - run: uv pip install --system -e ".[rag]" pytest pytest-cov
+      - run: uv venv --python ${{ matrix.python }}
+      - run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - run: uv pip install -e ".[rag]" pytest pytest-cov
       # a ratchet, not a target: currently 75%, held at 72 so it cannot regress.
-      # raise it as the CLI rewrite brings its own tests.
       - run: pytest --cov --cov-report=term-missing --cov-fail-under=72
 
   # the core path must not silently depend on an optional extra
@@ -54,14 +57,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv python install 3.12
-      - run: uv pip install --system -e . pytest
+      - run: uv venv --python 3.12
+      - run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - run: uv pip install -e . pytest
       - name: tests pass without the rag extra
         run: pytest
       - name: cli works without the rag extra
         run: |
           coursebrain --help
           coursebrain profiles
+          coursebrain sources
+      - name: doctor reports semantic search as missing, and names the fix
+        run: |
+          coursebrain doctor --json > checks.json || true
+          python - <<'PY'
+          import json
+          checks = {c["check"]: c for c in json.load(open("checks.json"))}
+          semantic = checks["semantic search"]
+          assert semantic["ok"] is False, semantic
+          assert "coursebrain[rag]" in semantic["fix"], semantic
+          print("doctor correctly reports the missing extra")
+          PY
+
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: plugin manifests are valid and consistent
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          plugin = json.load(open(".claude-plugin/plugin.json"))
+          market = json.load(open(".claude-plugin/marketplace.json"))
+          assert plugin["name"] == "coursebrain"
+          names = [p["name"] for p in market["plugins"]]
+          assert plugin["name"] in names, names
+          for entry in market["plugins"]:
+              assert entry["version"] == plugin["version"], "marketplace/plugin version drift"
+          for path in ("commands/learn.md", "commands/compose.md",
+                       "skills/course-knowledge/SKILL.md", "hooks/hooks.json"):
+              assert pathlib.Path(path).is_file(), f"missing {path}"
+          json.load(open("hooks/hooks.json"))
+          print("plugin layout ok:", names)
+          PY
+      - name: plugin version matches the package version
+        run: |
+          python - <<'PY'
+          import json, re, pathlib
+          plugin = json.load(open(".claude-plugin/plugin.json"))["version"]
+          pyproject = re.search(r'^version = "(.+?)"',
+                                pathlib.Path("pyproject.toml").read_text(),
+                                re.MULTILINE).group(1)
+          assert plugin == pyproject, f"plugin.json {plugin} != pyproject {pyproject}"
+          print("version", pyproject)
+          PY
 
   build:
     runs-on: ubuntu-latest
@@ -69,7 +118,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv build
-      - run: uv pip install --system twine && twine check dist/*
+      - run: uvx twine check dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: dist
