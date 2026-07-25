@@ -18,6 +18,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Agent-followable setup instructions in the README, so pasting the repository URL into a
   coding agent is enough to get installed and configured.
 - `scripts/bootstrap.sh` installs from GitHub and works without a clone.
+- Documentation site at <https://falcon305.github.io/coursebrain/>, built with mkdocs-material
+  and deployed from CI. Builds run on pull requests too, so a broken link fails review.
 
 ### Changed
 - Course libraries (`courses/`, `BRAIN.md`, generated skills) are no longer tracked. They

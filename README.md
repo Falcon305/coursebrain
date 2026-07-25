@@ -9,6 +9,13 @@
   <img src="https://img.shields.io/badge/licence-MIT-blue" alt="MIT">
 </p>
 
+<p align="center">
+  <b><a href="https://falcon305.github.io/coursebrain/">Documentation</a></b> ·
+  <a href="https://falcon305.github.io/coursebrain/getting-started/">Getting started</a> ·
+  <a href="https://falcon305.github.io/coursebrain/composition/">Composition</a> ·
+  <a href="https://falcon305.github.io/coursebrain/plugins/">Write a plugin</a>
+</p>
+
 ---
 
 **Throw a link at it.** A video, a playlist, a whole channel — coursebrain pulls the
@@ -229,6 +236,15 @@ content as such and flag what could not be recovered.
 
 Your courses stay yours: `courses/` is gitignored, because it holds captions from
 third-party videos. This repository ships the tool, not anyone's library.
+
+## Documentation
+
+Full docs at **[falcon305.github.io/coursebrain](https://falcon305.github.io/coursebrain/)** —
+[getting started](https://falcon305.github.io/coursebrain/getting-started/),
+[composition](https://falcon305.github.io/coursebrain/composition/),
+[profiles](https://falcon305.github.io/coursebrain/profiles/),
+[source plugins](https://falcon305.github.io/coursebrain/plugins/), and a
+[CLI reference](https://falcon305.github.io/coursebrain/cli/).
 
 ## Licence
 
