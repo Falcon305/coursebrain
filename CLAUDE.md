@@ -1,12 +1,13 @@
 # coursebrain
 
-Distills long-form video into markdown notes an agent can search and cite. See `SKILL.md` for how
-to query the knowledge; `BRAIN.md` lists every course.
+Distills long-form video into markdown notes an agent can search and cite, then compiles those
+notes into capability packs that compose. See `skills/course-knowledge/SKILL.md` for how to query
+the knowledge; `BRAIN.md` lists every course.
 
 ## Working on the pipeline
 
 ```sh
-uv pip install -e ".[dev]"      # core; add [rag] for semantic search
+uv pip install -e ".[rag]" --group dev
 .venv/bin/python -m pytest      # must stay green
 ```
 
@@ -28,11 +29,11 @@ are gone. Indexes under `.brain/` are ignored and must stay rebuildable offline 
 check possible (re-run the pipeline, get a byte-identical manifest). Langfuse holds timing. Don't
 add a `completed_at`.
 
-**Note schemas come from `pipeline/profiles/*.yaml`, not code.** Adding a domain is a YAML file.
+**Note schemas come from `src/coursebrain/profiles/*.yaml`, not code.** Adding a domain is a YAML file.
 Changing a profile's sections invalidates nothing automatically — existing notes keep their old
 shape until re-distilled.
 
-**The distill prompt version is part of the cache key.** Editing `pipeline/prompts/distill.md`
+**The distill prompt version is part of the cache key.** Editing `src/coursebrain/prompts/distill.md`
 invalidates distillations and nothing else. Fetching and normalizing stay cached.
 
 **`normalize.py` is the highest-bug-density file.** YouTube auto-captions use a rolling window that
@@ -50,3 +51,18 @@ Embeddings are static (model2vec, no PyTorch), so `course index` runs offline in
 
 Distillation is the only paid step. Roughly $10–15 for a 30-episode course, cached afterwards.
 Embeddings run locally and are free. Use `--fetch-only` to build transcripts without spending.
+
+## Capability packs
+
+`CAPABILITY.md` is not a summary of a course — it is the applicable layer, and the distinction is
+load-bearing. A note records what episode 7 said; a pack tells you what to do. If a compiled pack
+reads like a course description, compilation failed and the prompt needs work, not the code.
+
+Packs are what compose. Three courses stack because each governs a different layer, declared by
+`capability_kind` in the profile. `PRECEDENCE` in `capability.py` states who wins on conflict, and
+it is included verbatim in every composed output and every exported skill — change it there, not in
+prose scattered across templates.
+
+Acceptance testing composition means producing real output and judging whether every dimension
+survived. A pack that quietly contributes nothing looks identical to one that worked, until you
+read what came out.

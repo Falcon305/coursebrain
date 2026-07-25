@@ -44,9 +44,9 @@ jobs:
           enable-cache: true
       - run: uv python install ${{ matrix.python }}
       - run: uv pip install --system -e ".[rag]" pytest pytest-cov
-      # a ratchet, not a target: currently 68%, held at 65 so it cannot regress.
+      # a ratchet, not a target: currently 75%, held at 72 so it cannot regress.
       # raise it as the CLI rewrite brings its own tests.
-      - run: pytest --cov --cov-report=term-missing --cov-fail-under=65
+      - run: pytest --cov --cov-report=term-missing --cov-fail-under=72
 
   # the core path must not silently depend on an optional extra
   core-only:
