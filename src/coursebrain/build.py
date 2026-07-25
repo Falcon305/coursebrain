@@ -238,6 +238,70 @@ def prepare_course(
     return report
 
 
+COMPILE_PROMPT = PROMPT_FILE.parent / "compile.md"
+
+
+def _capability_item(paths: CoursePaths) -> work.WorkItem:
+    return work.item_for(paths, 0, "_capability")
+
+
+def prepare_capability(
+    course_id: str, courses_dir: Path | None = None, force: bool = False, log: Logger = print
+) -> Path:
+    """Stage a compilation task: turn this course's notes into a capability pack."""
+    from .capability import build_compile_prompt, capability_path, notes_digest, profile_kind
+
+    paths = CoursePaths.for_course(course_id, courses_dir)
+    config = paths.load_config()
+    profile = Profile.load(config.profile)
+    target = capability_path(paths)
+    if target.exists() and not force:
+        log(f"{course_id} already has a capability pack — pass --force to recompile")
+        return target
+
+    digest, note_count = notes_digest(paths)
+    kind = profile_kind(profile.name, profile.capability_kind)
+    system = build_compile_prompt(
+        COMPILE_PROMPT.read_text(encoding="utf-8"),
+        course_id=course_id,
+        title=config.title or course_id,
+        kind=kind,
+        guidance=profile.capability_guidance,
+        note_count=note_count,
+    )
+
+    item = _capability_item(paths)
+    episode = Episode(video_id=course_id, index=0, title=config.title or course_id, duration=0.0)
+    work.write_task(item, episode, "capability", system, f"# Notes\n\n{digest}")
+    log(f"{course_id}: staged compilation over {note_count} note(s) (kind: {kind})")
+    return item.body
+
+
+def assemble_capability(
+    course_id: str, courses_dir: Path | None = None, log: Logger = print
+) -> Path | None:
+    """Turn a written capability body into CAPABILITY.md."""
+    from .capability import parse_compiled, profile_kind
+
+    paths = CoursePaths.for_course(course_id, courses_dir)
+    config = paths.load_config()
+    profile = Profile.load(config.profile)
+    item = _capability_item(paths)
+    if not item.done:
+        return None
+
+    cap = parse_compiled(
+        item.body.read_text(encoding="utf-8"),
+        course_id=course_id,
+        kind=profile_kind(profile.name, profile.capability_kind),
+        title=config.title or course_id,
+    )
+    path = cap.save(paths)
+    work.clear(item)
+    log(f"{course_id}: {path.name} ({len(cap.body.split())} words)")
+    return path
+
+
 def assemble_course(
     course_id: str, courses_dir: Path | None = None, log: Logger = print
 ) -> BuildReport:

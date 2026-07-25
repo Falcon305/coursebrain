@@ -1,7 +1,16 @@
 name: academic
 description: University lectures, seminar series, conference talks, and research walkthroughs.
 concept_label: concepts
-derived: [synthesis]
+
+capability_kind: domain
+capability_guidance: |
+  Compile the argument, not the syllabus. What does this material claim, what supports
+  those claims, and where is it contested? Preserve the distinction between the
+  lecturer's own position, an attributed view, and an open question — flattening that
+  turns scholarship into trivia.
+
+  Keep the technical vocabulary and define it, since a reader using this pack will need
+  to use those words correctly.
 
 distill_guidance: |
   Distinguish what the lecturer asserts from what they attribute to someone else, and

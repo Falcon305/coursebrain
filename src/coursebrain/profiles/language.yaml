@@ -1,7 +1,19 @@
 name: language
 description: Language learning courses, grammar explanations, and immersion content.
 concept_label: grammar points
-derived: [synthesis, glossary]
+
+capability_kind: language
+capability_guidance: |
+  Compile how to actually sound like this. Register and when to shift it, high-frequency
+  vocabulary and idiom with their connotations, the grammar patterns that carry the most
+  weight, and the mistakes that mark someone as a learner.
+
+  Give target-language forms in the target language, always, with a gloss after — a pack
+  containing only translations teaches nothing about how to speak.
+
+  Be explicit about register and region. "Informal, River Plate Spanish" is usable;
+  "Spanish" is not, and a learner applying the wrong register sounds worse than one
+  speaking plainly.
 
 distill_guidance: |
   Two languages are in play: the language being taught and the language of instruction.

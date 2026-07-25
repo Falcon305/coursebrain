@@ -1,7 +1,17 @@
 name: programming
 description: Software courses, framework tutorials, language walkthroughs, system design talks.
 concept_label: concepts
-derived: [synthesis]
+
+capability_kind: domain
+capability_guidance: |
+  Compile what this course actually knows: the concepts that matter, the decisions and
+  the reasoning behind them, and the traps. Favour the rationale — source code shows
+  what was chosen, only the course explains why, and that is the part nobody can
+  recover without it.
+
+  Keep exact identifiers and signatures where they carry meaning, but this is not API
+  documentation. If a reader wants the API they will read the docs; what they want here
+  is judgement.
 
 distill_guidance: |
   Auto-generated captions mangle identifiers: "useEffect" becomes "use effect",

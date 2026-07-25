@@ -1,4 +1,4 @@
-# sum-ai
+# coursebrain
 
 Distills long-form video into markdown notes an agent can search and cite. See `SKILL.md` for how
 to query the knowledge; `BRAIN.md` lists every course.

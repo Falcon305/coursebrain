@@ -1,4 +1,4 @@
-# sum-ai
+# coursebrain
 
 Turns long-form video into a durable knowledge base that coding agents and humans can both read.
 

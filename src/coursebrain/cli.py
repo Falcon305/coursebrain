@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json as jsonlib
 import sys
+from pathlib import Path
 from typing import Annotated, Any
 
 import typer
@@ -18,7 +19,16 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeEl
 from rich.table import Table
 
 from . import work
-from .build import DEFAULT_WORKERS, assemble_course, build_course, prepare_course
+from .build import (
+    DEFAULT_WORKERS,
+    assemble_capability,
+    assemble_course,
+    build_course,
+    prepare_capability,
+    prepare_course,
+)
+from .capability import Capability, CapabilityError, render_skill
+from .capability import compose as compose_capabilities
 from .evals import run_eval, write_template
 from .manifest import Manifest
 from .models import slugify
@@ -304,6 +314,146 @@ def build(
     out.print(f"[green]{report.line()}[/]")
     if report.failed:
         raise typer.Exit(1)
+
+
+# ---------------------------------------------------------------------- capability
+
+
+@app.command(name="compile")
+def compile_cmd(
+    course_id: CourseArg,
+    force: Annotated[bool, typer.Option("--force", help="Recompile an existing pack")] = False,
+) -> None:
+    """Compile a course's notes into an applicable capability pack.
+
+    Notes are an archive; a pack is an instrument. Only packs compose — this is what
+    lets a language course, a subject course, and a writing course act together.
+    """
+    _course_or_fail(course_id)
+    lines: list[str] = []
+    try:
+        target = prepare_capability(course_id, force=force, log=lines.append)
+    except (CapabilityError, FileNotFoundError) as e:
+        fail(str(e))
+        return
+    for line in lines:
+        err.print(f"[dim]{line}[/]")
+
+    paths = CoursePaths.for_course(course_id)
+    item = work.item_for(paths, 0, "_capability")
+    if not item.task.exists():
+        out.print(f"[green]already compiled[/] {target}")
+        return
+    root = find_workspace()
+    out.print(
+        Panel(
+            f"read  [dim]{item.task.relative_to(root)}[/]\n"
+            f"write [bold]{item.body.relative_to(root)}[/]\n\n"
+            f"then: coursebrain compile-assemble {course_id}",
+            title="[bold]compilation staged[/]",
+            title_align="left",
+            border_style="dim",
+        )
+    )
+
+
+@app.command(name="compile-assemble")
+def compile_assemble_cmd(course_id: CourseArg) -> None:
+    """Turn a written capability body into CAPABILITY.md."""
+    _course_or_fail(course_id)
+    lines: list[str] = []
+    try:
+        path = assemble_capability(course_id, log=lines.append)
+    except CapabilityError as e:
+        fail(str(e))
+        return
+    for line in lines:
+        err.print(f"[dim]{line}[/]")
+    if path is None:
+        fail(
+            f"nothing written yet for '{course_id}'",
+            f"coursebrain compile {course_id}",
+        )
+        return
+    out.print(f"[green]compiled[/] {path}")
+    out.print(f"[dim]export it as a skill:[/] coursebrain skill {course_id}")
+
+
+@app.command()
+def skill(
+    course_id: CourseArg,
+    scope: Annotated[
+        str, typer.Option("--scope", help="project (./.claude) or user (~/.claude)")
+    ] = "project",
+    force: Annotated[bool, typer.Option("--force")] = False,
+) -> None:
+    """Export a course as a Claude Code skill, so it loads when relevant.
+
+    Skills compose natively: export a language course, a subject course, and a writing
+    course and the agent can use all three at once.
+    """
+    paths = _course_or_fail(course_id)
+    try:
+        cap = Capability.load(paths)
+    except CapabilityError as e:
+        fail(str(e))
+        return
+
+    if scope not in ("project", "user"):
+        fail(f"unknown scope '{scope}'", "--scope project|user")
+    base = (find_workspace() if scope == "project" else Path.home()) / ".claude" / "skills"
+    target = base / course_id / "SKILL.md"
+    if target.exists() and not force:
+        fail(f"{target} already exists", "pass --force to overwrite")
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(render_skill(cap, course_id), encoding="utf-8")
+    out.print(f"[green]wrote[/] {target}")
+    out.print(f"[dim]trigger:[/] {cap.trigger}")
+
+
+@app.command()
+def compose(
+    about: Annotated[
+        list[str] | None,
+        typer.Option("--about", "-a", help="Subject course(s)", autocompletion=complete_course),
+    ] = None,
+    voice: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--voice", "-v", help="Writing-craft course(s)", autocompletion=complete_course
+        ),
+    ] = None,
+    lang: Annotated[
+        list[str] | None,
+        typer.Option("--lang", "-L", help="Language course(s)", autocompletion=complete_course),
+    ] = None,
+    task: Annotated[str, typer.Option("--task", "-t", help="What you are producing")] = "",
+    output: Annotated[Path | None, typer.Option("--out", "-o", help="Write to a file")] = None,
+) -> None:
+    """Merge several courses into one context pack, with conflicts resolved.
+
+    [dim]coursebrain compose -a monads -v prose-craft -L spanish-slang \\
+        -t "explain monads to a beginner"[/]
+    """
+    ids = [*(about or []), *(voice or []), *(lang or [])]
+    if not ids:
+        fail("name at least one course", "coursebrain compose --about <course>")
+
+    try:
+        composition = compose_capabilities([_course_or_fail(cid) for cid in ids], task=task)
+    except CapabilityError as e:
+        fail(str(e))
+        return
+
+    text = composition.render(task=task)
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text, encoding="utf-8")
+        out.print(f"[green]wrote[/] {output}")
+        return
+    # plain print: this is meant to be piped into another tool
+    print(text)
 
 
 # ---------------------------------------------------------------------------- query

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -40,9 +40,10 @@ class Profile:
     name: str
     description: str
     sections: list[Section]
-    derived: list[str] = field(default_factory=list)
     distill_guidance: str = ""
     concept_label: str = "concepts"
+    capability_kind: str = "domain"
+    capability_guidance: str = ""
 
     @property
     def headings(self) -> list[str]:
@@ -69,9 +70,10 @@ class Profile:
             name=data.get("name", name),
             description=data.get("description", ""),
             sections=sections,
-            derived=list(data.get("derived") or []),
             distill_guidance=data.get("distill_guidance", "").strip(),
             concept_label=data.get("concept_label", "concepts"),
+            capability_kind=data.get("capability_kind", "domain"),
+            capability_guidance=data.get("capability_guidance", "").strip(),
         )
 
 

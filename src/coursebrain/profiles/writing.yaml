@@ -1,7 +1,18 @@
 name: writing
 description: Writing craft, rhetoric, storytelling, copywriting, editing, and style courses.
 concept_label: principles
-derived: [synthesis, style]
+
+capability_kind: voice
+capability_guidance: |
+  Compile a style guide someone could write by tonight. Rules of craft, concrete moves
+  to apply to a draft, and what to cut.
+
+  Quote exemplars verbatim and keep them — style transmits by specimen, and a paraphrased
+  example has destroyed the thing being taught. A pack with three real sentences beats one
+  with ten descriptions of sentences.
+
+  Say what this voice is *not*, too. Anti-patterns are what stop the reader defaulting
+  back to their own habits.
 
 distill_guidance: |
   This profile has an unusual goal. The point is not to summarise what the instructor

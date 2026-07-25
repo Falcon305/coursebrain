@@ -1,7 +1,14 @@
 name: general
 description: Default profile. Interviews, documentaries, talks, and anything without a better fit.
 concept_label: concepts
-derived: [synthesis]
+
+capability_kind: domain
+capability_guidance: |
+  Compile what a reader should take away and be able to use. Concepts, claims with their
+  support, and anything directly actionable.
+
+  If the material is not actionable, say what it changes about how a reader should think
+  rather than padding with practical-sounding advice it never gave.
 
 distill_guidance: |
   Keep the speaker's framing rather than flattening everything into neutral summary.
