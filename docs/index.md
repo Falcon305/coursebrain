@@ -15,23 +15,32 @@ what to do differently. Compilation is how you get the second thing.
     what you are already running. The Anthropic API path exists for unattended runs and is
     entirely optional.
 
-## The idea in one diagram
+## The problem
+
+There are hundreds of hours of genuinely good material on your subject sitting on YouTube, and
+your agent has watched none of it.
+
+Retrieval does not fix it. A RAG system hands you a passage someone said once; it cannot tell
+you which of two contradictory episodes to trust, or that the step everybody skips is the one
+that matters. **A quote is not judgement.**
+
+## The solution
 
 ```
-video ──▶ transcripts ──▶ notes            deep, cited, searchable
-                            │
-                            ▼
-                       capability pack     applicable, ~500 words
-                            │
-                            ▼
-                       SKILL.md            composes with other courses
+playlists ──▶ transcripts ──▶ cited notes ──▶ capability pack ──▶ SKILL.md
+                                   │                                  │
+                           search when you                  applied automatically,
+                             need a source                   composes with others
 ```
 
-A **note** answers *"what did episode 7 say?"*. A **capability pack** answers *"how do I
-write like this?"* — prescriptive, self-contained, and useless as an archive.
+|  | **Note** | **Capability pack** |
+| --- | --- | --- |
+| Answers | *"What did episode 7 say?"* | *"What does someone who studied this know?"* |
+| Produced by | Reading one episode | Reading **every** note at once |
+| Loads | On request | **Automatically, when relevant** |
+| Composes | No | **Yes** |
 
-Only the second composes. That distinction is the whole design, and it is covered in
-[Composition](composition.md).
+That distinction is the whole design, and it is covered in [Composition](composition.md).
 
 ## Where to go next
 
