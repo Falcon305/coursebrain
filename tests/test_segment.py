@@ -1,5 +1,5 @@
-from pipeline.models import Chapter, Segment
-from pipeline.stages.segment import segment_episode, total_words
+from coursebrain.models import Chapter, Segment
+from coursebrain.stages.segment import segment_episode, total_words
 
 
 def make_segments(n: int, words_each: int = 10, step: float = 5.0) -> list[Segment]:

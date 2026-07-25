@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import work
 from .cache import Cache, content_hash
 from .manifest import Manifest, StageRecord
-from .models import Episode, Segment
+from .models import Segment
 from .observability import Observability
 from .paths import CoursePaths
 from .profiles import Profile
@@ -24,6 +25,8 @@ from .stages.distill import (
     render_note,
 )
 
+Logger = Callable[[str], None]
+
 
 @dataclass
 class BuildReport:
@@ -38,8 +41,10 @@ class BuildReport:
     def line(self) -> str:
         parts = []
         for label, n in (
-            ("fetched", self.fetched), ("prepared", self.prepared),
-            ("distilled", self.distilled), ("assembled", self.assembled),
+            ("fetched", self.fetched),
+            ("prepared", self.prepared),
+            ("distilled", self.distilled),
+            ("assembled", self.assembled),
             ("cached", self.cached),
         ):
             if n:
@@ -59,8 +64,15 @@ def _write_transcript(path: Path, segments: list[Segment]) -> None:
     )
 
 
-def _distill_cache_key(cache: Cache, version: str, transcript_hash: str, profile: Profile,
-                       model: str, glossary: list[str], title: str) -> str:
+def _distill_cache_key(
+    cache: Cache,
+    version: str,
+    transcript_hash: str,
+    profile: Profile,
+    model: str,
+    glossary: list[str],
+    title: str,
+) -> str:
     return cache.key(
         "distill",
         version,
@@ -80,7 +92,7 @@ def prepare_course(
     limit: int | None = None,
     only: int | None = None,
     force: bool = False,
-    log=print,
+    log: Logger = print,
 ) -> BuildReport:
     """Fetch, normalize, segment, and stage each episode for distillation.
 
@@ -124,7 +136,14 @@ def prepare_course(
             )
             continue
 
-        vtt = fetch._subtitle_path(paths, video_id, config.language)
+        vtt = fetch.subtitle_path(paths, video_id, config.language)
+        if vtt is None:
+            # the fetch stage reported captions but the file is gone: a partial
+            # download or a hand-edited raw/ directory. Fail this episode loudly
+            # rather than crashing the whole run on an attribute error.
+            log(f"{label} — caption file missing from raw/, skipped")
+            report.failed.append(video_id)
+            continue
         segments = normalize.normalize_file(vtt, episode.caption_source)
         _write_transcript(paths.transcripts / f"{episode.slug}.jsonl", segments)
         transcript_hash = content_hash([s.to_dict() for s in segments])
@@ -153,7 +172,9 @@ def prepare_course(
     return report
 
 
-def assemble_course(course_id: str, courses_dir: Path | None = None, log=print) -> BuildReport:
+def assemble_course(
+    course_id: str, courses_dir: Path | None = None, log: Logger = print
+) -> BuildReport:
     """Wrap agent-written bodies in mechanical frontmatter and file them as notes."""
     paths = CoursePaths.for_course(course_id, courses_dir)
     config = paths.load_config()
@@ -196,7 +217,7 @@ def distill_pending(
     courses_dir: Path | None = None,
     model: str = DEFAULT_MODEL,
     force: bool = False,
-    log=print,
+    log: Logger = print,
 ) -> BuildReport:
     """Distill staged episodes through the Anthropic API instead of an agent."""
     paths = CoursePaths.for_course(course_id, courses_dir)
@@ -243,8 +264,15 @@ def distill_pending(
             report.failed.append(episode.video_id)
             continue
 
-        cache.put(key, {"body": result.body, "model": result.model,
-                        "prompt_version": result.prompt_version, "trace_id": result.trace_id})
+        cache.put(
+            key,
+            {
+                "body": result.body,
+                "model": result.model,
+                "prompt_version": result.prompt_version,
+                "trace_id": result.trace_id,
+            },
+        )
         item.body.write_text(result.body, encoding="utf-8")
         report.distilled += 1
         log(f"{label} — {len(result.body.split())} words")
@@ -262,7 +290,7 @@ def build_course(
     model: str = DEFAULT_MODEL,
     force: bool = False,
     fetch_only: bool = False,
-    log=print,
+    log: Logger = print,
 ) -> BuildReport:
     """Full unattended build through the API. Agent mode uses prepare + assemble."""
     report = prepare_course(course_id, courses_dir, limit, only, force, log)

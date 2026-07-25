@@ -1,8 +1,8 @@
 import pytest
 
-from pipeline.manifest import Manifest
-from pipeline.paths import CourseConfig, CoursePaths
-from pipeline.stages.verify import verify_course
+from coursebrain.manifest import Manifest
+from coursebrain.paths import CourseConfig, CoursePaths
+from coursebrain.stages.verify import verify_course
 
 NOTE = """---
 course: demo
@@ -92,8 +92,12 @@ def test_timestamp_pointing_at_another_video(course):
 
 def test_timestamp_label_disagreeing_with_link(course):
     root, paths = course
-    write(paths, NOTE.replace("[2:05](https://youtu.be/abc123?t=125)",
-                              "[2:05](https://youtu.be/abc123?t=9000)"))
+    write(
+        paths,
+        NOTE.replace(
+            "[2:05](https://youtu.be/abc123?t=125)", "[2:05](https://youtu.be/abc123?t=9000)"
+        ),
+    )
     report = verify_course("demo", root)
     assert any("disagrees" in p for p in report.problems)
 

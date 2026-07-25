@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import contextlib
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 
 @dataclass
@@ -74,10 +76,8 @@ class Observability:
 
     def flush(self) -> None:
         if self.enabled:
-            try:
+            with contextlib.suppress(Exception):
                 self._client.flush()
-            except Exception:
-                pass
 
     @property
     def status(self) -> str:

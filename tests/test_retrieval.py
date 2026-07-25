@@ -1,7 +1,7 @@
 import pytest
 
-from pipeline.notes import Chunk, parse_note, split_frontmatter
-from pipeline.retrieval import (
+from coursebrain.notes import Chunk, parse_note, split_frontmatter
+from coursebrain.retrieval import (
     build_index,
     fts_query,
     keyword_search,
@@ -60,6 +60,22 @@ def test_split_frontmatter_without_frontmatter():
     meta, body = split_frontmatter("# just a title\n")
     assert meta == {}
     assert body.startswith("# just")
+
+
+def test_split_frontmatter_keeps_horizontal_rules_in_the_body():
+    # splitting on every "---" silently truncated notes containing a markdown rule
+    text = "---\ncourse: x\n---\n\n## TL;DR\n\nbefore\n\n---\n\nafter the rule\n"
+    meta, body = split_frontmatter(text)
+    assert meta["course"] == "x"
+    assert "after the rule" in body
+    assert body.count("---") == 1
+
+
+def test_split_frontmatter_unterminated_block_is_not_frontmatter():
+    text = "---\ncourse: x\nnever closed\n"
+    meta, body = split_frontmatter(text)
+    assert meta == {}
+    assert body == text
 
 
 def test_note_metadata(note):
@@ -133,8 +149,13 @@ def test_keyword_search_does_not_crash_on_fts_syntax(tmp_path, note):
 
 def make_chunk(course, episode, heading):
     return Chunk(
-        course=course, episode=episode, video_id="v", note_path="p",
-        title="t", heading=heading, text="body",
+        course=course,
+        episode=episode,
+        video_id="v",
+        note_path="p",
+        title="t",
+        heading=heading,
+        text="body",
     )
 
 

@@ -1,9 +1,9 @@
 import pytest
 
-from pipeline import work
-from pipeline.build import assemble_course
-from pipeline.models import Episode
-from pipeline.paths import CourseConfig, CoursePaths
+from coursebrain import work
+from coursebrain.build import assemble_course
+from coursebrain.models import Episode
+from coursebrain.paths import CourseConfig, CoursePaths
 
 BODY = """## TL;DR
 
@@ -33,7 +33,10 @@ def staged(tmp_path):
         paths.config
     )
     episode = Episode(
-        video_id="vid123", index=1, title="First episode", duration=600.0,
+        video_id="vid123",
+        index=1,
+        title="First episode",
+        duration=600.0,
         caption_source="auto",
     )
     item = work.item_for(paths, 1, episode.slug)
@@ -72,7 +75,7 @@ def test_meta_roundtrip(staged):
 
 
 def test_assemble_produces_a_note_with_frontmatter(staged):
-    root, paths, item = staged
+    root, _paths, item = staged
     item.body.write_text(BODY)
     report = assemble_course("demo", root, log=lambda *a: None)
     assert report.assembled == 1
@@ -99,7 +102,7 @@ def test_assemble_records_the_manifest(staged):
     root, paths, item = staged
     item.body.write_text(BODY)
     assemble_course("demo", root, log=lambda *a: None)
-    from pipeline.manifest import Manifest
+    from coursebrain.manifest import Manifest
 
     manifest = Manifest.load(paths.manifest, "demo")
     record = manifest.episodes["vid123"]
@@ -108,7 +111,7 @@ def test_assemble_records_the_manifest(staged):
 
 
 def test_assemble_skips_unwritten_bodies(staged):
-    root, paths, item = staged
+    root, _paths, item = staged
     report = assemble_course("demo", root, log=lambda *a: None)
     assert report.assembled == 0
     assert item.task.exists()

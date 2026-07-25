@@ -3,9 +3,10 @@ from __future__ import annotations
 import os
 import re
 import sqlite3
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .notes import Chunk
 
@@ -54,6 +55,7 @@ def _row_to_chunk(row: sqlite3.Row) -> Chunk:
 
 
 # --- vectors: same file as the keyword index, so there is nothing to keep in sync ---
+
 
 def vectors_available() -> bool:
     try:
@@ -104,7 +106,9 @@ def _connect(db_path: Path) -> tuple[sqlite3.Connection, bool]:
     return conn, _load_vec(conn)
 
 
-def build_index(db_path: Path, chunks: Iterable[Chunk], use_vectors: bool = True) -> tuple[int, int]:
+def build_index(
+    db_path: Path, chunks: Iterable[Chunk], use_vectors: bool = True
+) -> tuple[int, int]:
     chunks = list(chunks)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn, has_vec = _connect(db_path)
@@ -117,9 +121,15 @@ def build_index(db_path: Path, chunks: Iterable[Chunk], use_vectors: bool = True
                 "INSERT INTO chunks (text, heading, title, course, episode, video_id, "
                 "note_path, timestamp, layer) VALUES (?,?,?,?,?,?,?,?,?)",
                 (
-                    chunk.text, chunk.heading, chunk.title, chunk.course, str(chunk.episode),
-                    chunk.video_id, chunk.note_path,
-                    "" if chunk.timestamp is None else str(chunk.timestamp), chunk.layer,
+                    chunk.text,
+                    chunk.heading,
+                    chunk.title,
+                    chunk.course,
+                    str(chunk.episode),
+                    chunk.video_id,
+                    chunk.note_path,
+                    "" if chunk.timestamp is None else str(chunk.timestamp),
+                    chunk.layer,
                 ),
             )
 
@@ -134,7 +144,10 @@ def build_index(db_path: Path, chunks: Iterable[Chunk], use_vectors: bool = True
             vectors = embed([f"{c.heading}\n{c.text}" for c in chunks])
             conn.executemany(
                 "INSERT INTO vec_chunks(rowid, embedding) VALUES (?, ?)",
-                [(rid, sqlite_vec.serialize_float32(v)) for rid, v in zip(rowids, vectors)],
+                [
+                    (rid, sqlite_vec.serialize_float32(v))
+                    for rid, v in zip(rowids, vectors, strict=True)
+                ],
             )
             embedded = len(vectors)
         conn.commit()

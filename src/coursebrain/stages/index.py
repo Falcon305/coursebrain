@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from pathlib import Path
 
-from ..notes import Chunk, Note, load_notes
-from ..paths import BrainPaths, CoursePaths, list_courses
-from ..retrieval import build_index, vectors_available
+from coursebrain.notes import Chunk, Note, load_notes
+from coursebrain.paths import BrainPaths, CoursePaths, list_courses
+from coursebrain.retrieval import build_index, vectors_available
+
+Logger = Callable[[str], None]
 
 
 def render_course_index(course_id: str, title: str, notes: list[Note]) -> str:
@@ -17,8 +20,11 @@ def render_course_index(course_id: str, title: str, notes: list[Note]) -> str:
     for note in sorted(notes, key=lambda n: n.episode):
         rel = f"notes/{note.path.name}"
         summary = note.summary
-        lines.append(f"- **[{note.episode:02d}. {note.title}]({rel})** — {summary}"
-                     if summary else f"- **[{note.episode:02d}. {note.title}]({rel})**")
+        lines.append(
+            f"- **[{note.episode:02d}. {note.title}]({rel})** — {summary}"
+            if summary
+            else f"- **[{note.episode:02d}. {note.title}]({rel})**"
+        )
         if note.concepts:
             lines.append(f"  - {', '.join(note.concepts[:12])}")
     lines.append("")
@@ -49,7 +55,7 @@ def render_brain(summaries: list[tuple[str, str, str, int]]) -> str:
         "# Brain",
         "",
         "Everything this repository has learned, one line per course.",
-        "Open a course's `INDEX.md` to go deeper, or run `course ask \"<question>\"`.",
+        'Open a course\'s `INDEX.md` to go deeper, or run `course ask "<question>"`.',
         "",
     ]
     if not summaries:
@@ -69,17 +75,17 @@ def index_course(course_id: str, courses_dir: Path | None = None) -> tuple[list[
     config = paths.load_config()
     notes = load_notes(paths.notes)
 
-    paths.index_md.write_text(
-        render_course_index(course_id, config.title, notes), encoding="utf-8"
-    )
+    paths.index_md.write_text(render_course_index(course_id, config.title, notes), encoding="utf-8")
     paths.concepts_md.write_text(render_concepts(notes), encoding="utf-8")
 
     chunks = [c for note in notes for c in note.chunks]
     return chunks, len(notes)
 
 
-def index_all(courses_dir: Path | None = None, use_vectors: bool = True, log=print) -> int:
-    brain = BrainPaths()
+def index_all(
+    courses_dir: Path | None = None, use_vectors: bool = True, log: Logger = print
+) -> int:
+    brain = BrainPaths.for_workspace()
     brain.ensure()
 
     all_chunks: list[Chunk] = []

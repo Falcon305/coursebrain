@@ -33,9 +33,7 @@ class EvalResult:
         return sum(self.reciprocal_ranks) / self.total if self.total else 0.0
 
     def line(self, k: int) -> str:
-        return (
-            f"{self.total} question(s) | recall@{k}: {self.recall:.0%} | MRR: {self.mrr:.2f}"
-        )
+        return f"{self.total} question(s) | recall@{k}: {self.recall:.0%} | MRR: {self.mrr:.2f}"
 
 
 def load_cases(path: Path) -> list[EvalCase]:
@@ -63,7 +61,7 @@ def run_eval(
     courses_dir: Path | None = None,
     use_vectors: bool = True,
 ) -> EvalResult:
-    brain = BrainPaths()
+    brain = BrainPaths.for_workspace()
     cases: list[EvalCase] = []
     if course_id:
         cases = load_cases(CoursePaths.for_course(course_id, courses_dir).evals / "questions.yaml")

@@ -4,11 +4,11 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..manifest import Manifest
-from ..models import format_timestamp
-from ..notes import load_notes
-from ..paths import CoursePaths
-from ..profiles import Profile
+from coursebrain.manifest import Manifest
+from coursebrain.models import format_timestamp
+from coursebrain.notes import load_notes
+from coursebrain.paths import CoursePaths
+from coursebrain.profiles import Profile
 
 TIMESTAMP_LINK_RE = re.compile(r"\[(\d+:\d{2}(?::\d{2})?)\]\(https://youtu\.be/([\w-]+)\?t=(\d+)\)")
 MD_LINK_RE = re.compile(r"\[[^\]]*\]\((?!https?:)([^)]+)\)")
@@ -42,9 +42,17 @@ def verify_course(course_id: str, courses_dir: Path | None = None) -> VerifyRepo
         if record.index not in by_episode:
             report.add(f"ep{record.index:02d}", f"no note for '{record.title}'")
 
-    optional = {"Unclear from audio", "Visual blind spots", "Practical takeaways",
-                "Gotchas", "Exam-relevant points", "Drills", "Revision moves",
-                "Frameworks & models", "Pronunciation notes"}
+    optional = {
+        "Unclear from audio",
+        "Visual blind spots",
+        "Practical takeaways",
+        "Gotchas",
+        "Exam-relevant points",
+        "Drills",
+        "Revision moves",
+        "Frameworks & models",
+        "Pronunciation notes",
+    }
     required = [h for h in profile.headings if h not in optional]
 
     for note in notes:

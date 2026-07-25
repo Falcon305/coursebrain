@@ -5,9 +5,10 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
-from ..models import Chapter, Episode
-from ..paths import CoursePaths
+from coursebrain.models import CaptionSource, Chapter, Episode
+from coursebrain.paths import CoursePaths
 
 
 def _resolve_ytdlp() -> str:
@@ -50,7 +51,9 @@ def enumerate_source(url: str, limit: int | None = None) -> list[tuple[str, str]
         args = ["--playlist-end", str(limit), *args]
     proc = _run(args, timeout=300)
     if proc.returncode != 0:
-        raise FetchError(proc.stderr.strip().splitlines()[-1] if proc.stderr else "enumerate failed")
+        raise FetchError(
+            proc.stderr.strip().splitlines()[-1] if proc.stderr else "enumerate failed"
+        )
 
     out: list[tuple[str, str]] = []
     for line in proc.stdout.splitlines():
@@ -69,7 +72,7 @@ def _info_path(paths: CoursePaths, video_id: str) -> Path:
     return paths.raw / f"{video_id}.info.json"
 
 
-def _subtitle_path(paths: CoursePaths, video_id: str, lang: str) -> Path | None:
+def subtitle_path(paths: CoursePaths, video_id: str, lang: str) -> Path | None:
     for candidate in sorted(paths.raw.glob(f"{video_id}.*.vtt")):
         if candidate.stem.endswith(f".{lang}") or f".{lang}-" in candidate.name:
             return candidate
@@ -77,7 +80,7 @@ def _subtitle_path(paths: CoursePaths, video_id: str, lang: str) -> Path | None:
     return matches[0] if matches else None
 
 
-def _download_info(paths: CoursePaths, video_id: str) -> dict:
+def _download_info(paths: CoursePaths, video_id: str) -> dict[str, Any]:
     target = _info_path(paths, video_id)
     if not target.exists():
         proc = _run(
@@ -90,12 +93,17 @@ def _download_info(paths: CoursePaths, video_id: str) -> dict:
             ]
         )
         if not target.exists():
-            raise FetchError(proc.stderr.strip().splitlines()[-1] if proc.stderr else "no info.json")
-    return json.loads(target.read_text(encoding="utf-8"))
+            raise FetchError(
+                proc.stderr.strip().splitlines()[-1] if proc.stderr else "no info.json"
+            )
+    info: dict[str, Any] = json.loads(target.read_text(encoding="utf-8"))
+    return info
 
 
-def _download_subtitles(paths: CoursePaths, video_id: str, info: dict, lang: str) -> str:
-    existing = _subtitle_path(paths, video_id, lang)
+def _download_subtitles(
+    paths: CoursePaths, video_id: str, info: dict[str, Any], lang: str
+) -> CaptionSource:
+    existing = subtitle_path(paths, video_id, lang)
     if existing:
         return "manual" if _has_manual(info, lang) else "auto"
 
@@ -113,22 +121,22 @@ def _download_subtitles(paths: CoursePaths, video_id: str, info: dict, lang: str
     args.insert(0, "--write-subs" if manual else "--write-auto-subs")
     _run(args)
 
-    if _subtitle_path(paths, video_id, lang):
+    if subtitle_path(paths, video_id, lang):
         return "manual" if manual else "auto"
 
     if manual:
         _run(["--write-auto-subs", *args[1:]])
-        if _subtitle_path(paths, video_id, lang):
+        if subtitle_path(paths, video_id, lang):
             return "auto"
     return "none"
 
 
-def _has_manual(info: dict, lang: str) -> bool:
+def _has_manual(info: dict[str, Any], lang: str) -> bool:
     subs = info.get("subtitles") or {}
     return any(k == lang or k.startswith(f"{lang}-") for k in subs)
 
 
-def _chapters(info: dict, duration: float) -> list[Chapter]:
+def _chapters(info: dict[str, Any], duration: float) -> list[Chapter]:
     raw = info.get("chapters") or []
     out: list[Chapter] = []
     for i, ch in enumerate(raw):
@@ -136,7 +144,9 @@ def _chapters(info: dict, duration: float) -> list[Chapter]:
         end = ch.get("end_time")
         if end is None:
             end = raw[i + 1]["start_time"] if i + 1 < len(raw) else duration
-        out.append(Chapter(title=ch.get("title") or f"Chapter {i + 1}", start=start, end=float(end)))
+        out.append(
+            Chapter(title=ch.get("title") or f"Chapter {i + 1}", start=start, end=float(end))
+        )
     return out
 
 

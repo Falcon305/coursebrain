@@ -1,4 +1,4 @@
-from pipeline.stages.normalize import parse_time, parse_vtt, strip_markup, to_plain_text
+from coursebrain.stages.normalize import parse_time, parse_vtt, strip_markup, to_plain_text
 
 AUTO_VTT = """WEBVTT
 Kind: captions
@@ -65,7 +65,7 @@ def test_manual_captions_keep_legitimate_repeats():
 
 
 def test_strip_markup_removes_inline_timings_and_entities():
-    raw = 'a<00:00:01.500><c.colorE5E5E5> b</c>&amp;<i>c</i>'
+    raw = "a<00:00:01.500><c.colorE5E5E5> b</c>&amp;<i>c</i>"
     assert strip_markup(raw) == "a b&c"
 
 
@@ -86,11 +86,7 @@ def test_note_blocks_ignored():
 
 
 def test_consecutive_identical_cues_merge():
-    vtt = (
-        "WEBVTT\n\n"
-        "00:00:01.000 --> 00:00:02.000\nsame\n\n"
-        "00:00:02.000 --> 00:00:04.000\nsame\n"
-    )
+    vtt = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nsame\n\n00:00:02.000 --> 00:00:04.000\nsame\n"
     segments = parse_vtt(vtt)
     assert len(segments) == 1
     assert segments[0].end == 4.0

@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # keep the model2vec download quiet and out of the logs
+  HF_HUB_DISABLE_PROGRESS_BARS: "1"
+  HF_HUB_DISABLE_TELEMETRY: "1"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv pip install --system -e ".[rag]" ruff mypy types-PyYAML
+      # no --fix in CI: violations must fail rather than be silently repaired
+      - run: ruff check --no-fix .
+      - run: ruff format --check .
+      - run: mypy
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install ${{ matrix.python }}
+      - run: uv pip install --system -e ".[rag]" pytest pytest-cov
+      # a ratchet, not a target: currently 68%, held at 65 so it cannot regress.
+      # raise it as the CLI rewrite brings its own tests.
+      - run: pytest --cov --cov-report=term-missing --cov-fail-under=65
+
+  # the core path must not silently depend on an optional extra
+  core-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - run: uv pip install --system -e . pytest
+      - name: tests pass without the rag extra
+        run: pytest
+      - name: cli works without the rag extra
+        run: |
+          coursebrain --help
+          coursebrain profiles
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - run: uv pip install --system twine && twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/

@@ -44,7 +44,9 @@ def item_for(paths: CoursePaths, episode: int, slug: str) -> WorkItem:
     )
 
 
-def write_task(item: WorkItem, episode: Episode, transcript_hash: str, system: str, user: str) -> None:
+def write_task(
+    item: WorkItem, episode: Episode, transcript_hash: str, system: str, user: str
+) -> None:
     item.task.parent.mkdir(parents=True, exist_ok=True)
     item.meta.write_text(
         json.dumps(

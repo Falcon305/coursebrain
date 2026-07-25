@@ -4,7 +4,7 @@ import html
 import re
 from pathlib import Path
 
-from ..models import Segment
+from coursebrain.models import Segment
 
 TIMING_RE = re.compile(
     r"^(\d{1,2}:\d{2}:\d{2}[.,]\d{3}|\d{1,2}:\d{2}[.,]\d{3})\s*-->\s*"
@@ -31,7 +31,7 @@ def strip_markup(line: str) -> str:
     line = INLINE_TIME_RE.sub("", line)
     line = TAG_RE.sub("", line)
     line = html.unescape(line)
-    line = line.replace(" ", " ")
+    line = line.replace("\xa0", " ")  # nbsp
     return re.sub(r"\s+", " ", line).strip()
 
 

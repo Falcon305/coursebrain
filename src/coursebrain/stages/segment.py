@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..models import Chapter, Section, Segment
+from coursebrain.models import Chapter, Section, Segment
 
 DEFAULT_WINDOW_WORDS = 1500
 MIN_CHAPTER_WORDS = 40
@@ -46,9 +46,7 @@ def _by_window(segments: list[Segment], window_words: int) -> list[Section]:
         bucket.append(segment)
         count += len(segment.text.split())
         if count >= window_words and segment.text.rstrip().endswith((".", "?", "!")):
-            sections.append(
-                Section(start=bucket[0].start, end=bucket[-1].end, text=_join(bucket))
-            )
+            sections.append(Section(start=bucket[0].start, end=bucket[-1].end, text=_join(bucket)))
             bucket, count = [], 0
 
     if bucket:

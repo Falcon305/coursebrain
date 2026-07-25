@@ -10,7 +10,7 @@ from .manifest import Manifest
 from .models import slugify
 from .paths import BrainPaths, CourseConfig, CoursePaths, list_courses
 from .profiles import Profile, list_profiles
-from .retrieval import search, vectors_available
+from .retrieval import search
 from .stages.distill import DEFAULT_MODEL, api_key_present
 from .stages.index import index_all
 from .stages.verify import verify_course
@@ -23,8 +23,10 @@ def cmd_init(args: argparse.Namespace) -> int:
         print(f"course '{course_id}' already exists at {paths.root}", file=sys.stderr)
         return 1
     if args.profile not in list_profiles():
-        print(f"unknown profile '{args.profile}'. available: {', '.join(list_profiles())}",
-              file=sys.stderr)
+        print(
+            f"unknown profile '{args.profile}'. available: {', '.join(list_profiles())}",
+            file=sys.stderr,
+        )
         return 1
 
     paths.ensure_dirs()
@@ -42,9 +44,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_prepare(args: argparse.Namespace) -> int:
-    report = prepare_course(
-        args.id, limit=args.limit, only=args.only, force=args.force
-    )
+    report = prepare_course(args.id, limit=args.limit, only=args.only, force=args.force)
     paths = CoursePaths.for_course(args.id)
     todo = work.pending(paths)
     if todo:
@@ -114,7 +114,7 @@ def cmd_index(args: argparse.Namespace) -> int:
 
 
 def cmd_ask(args: argparse.Namespace) -> int:
-    brain = BrainPaths()
+    brain = BrainPaths.for_workspace()
     if not brain.index_db.exists():
         print("no index yet — run: course index", file=sys.stderr)
         return 1
@@ -217,7 +217,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--fetch-only", action="store_true", help="stop after transcripts")
     p.set_defaults(func=cmd_build)
 
-    p = sub.add_parser("index", help="rebuild INDEX.md, CONCEPTS.md, BRAIN.md, and the search index")
+    p = sub.add_parser(
+        "index", help="rebuild INDEX.md, CONCEPTS.md, BRAIN.md, and the search index"
+    )
     p.add_argument("--no-vectors", action="store_true", help="keyword index only")
     p.set_defaults(func=cmd_index)
 
@@ -253,7 +255,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        return args.func(args)
+        return int(args.func(args))
     except KeyboardInterrupt:
         print("\ninterrupted", file=sys.stderr)
         return 130

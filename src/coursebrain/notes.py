@@ -74,11 +74,12 @@ class Note:
 def split_frontmatter(text: str) -> tuple[dict[str, Any], str]:
     if not text.startswith("---"):
         return {}, text
-    parts = text.split("\n---", 2)
-    if len(parts) < 2:
+    # split on the *first* closing delimiter only: a body may legitimately contain
+    # a `---` horizontal rule, and splitting on all of them truncates the note
+    raw, sep, body = text[3:].partition("\n---")
+    if not sep:
         return {}, text
-    raw = parts[0][3:]
-    body = parts[1].lstrip("\n") if len(parts) == 2 else parts[1].lstrip("\n")
+    body = body.lstrip("\n")
     try:
         meta = yaml.safe_load(raw) or {}
     except yaml.YAMLError:

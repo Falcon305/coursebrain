@@ -1,7 +1,7 @@
 import pytest
 
-from pipeline.notes import Chunk
-from pipeline.retrieval import build_index, search, vector_search, vectors_available
+from coursebrain.notes import Chunk
+from coursebrain.retrieval import build_index, search, vector_search, vectors_available
 
 pytestmark = pytest.mark.skipif(
     not vectors_available(), reason="semantic search needs the 'rag' extra"
@@ -10,8 +10,13 @@ pytestmark = pytest.mark.skipif(
 
 def chunk(course, episode, heading, text):
     return Chunk(
-        course=course, episode=episode, video_id="v", note_path="p",
-        title="t", heading=heading, text=text,
+        course=course,
+        episode=episode,
+        video_id="v",
+        note_path="p",
+        title="t",
+        heading=heading,
+        text=text,
     )
 
 
@@ -46,7 +51,7 @@ def test_vector_search_respects_course_filter(db):
 
 
 def test_hybrid_beats_keyword_alone_on_vocabulary_mismatch(db):
-    from pipeline.retrieval import keyword_search
+    from coursebrain.retrieval import keyword_search
 
     query = "how do I deal with stale data"
     keyword_only = keyword_search(db, query, k=3)

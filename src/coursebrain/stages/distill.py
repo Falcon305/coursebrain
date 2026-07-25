@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..models import Episode, Section, format_timestamp
-from ..observability import Observability, Prompt
-from ..profiles import Profile
+from coursebrain.models import Episode, Section, format_timestamp
+from coursebrain.observability import Observability, Prompt
+from coursebrain.profiles import Profile
 
 DEFAULT_MODEL = "claude-opus-5"
 MAX_TOKENS = 32000

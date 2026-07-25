@@ -1,21 +1,48 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-COURSES_DIR = REPO_ROOT / "courses"
-BRAIN_DIR = REPO_ROOT / ".brain"
+ENV_HOME = "COURSEBRAIN_HOME"
+MARKERS = ("courses", ".coursebrain")
+
+
+def find_workspace(start: Path | None = None) -> Path:
+    """Where this machine keeps its courses.
+
+    An installed tool must not store data inside its own package directory, so the
+    workspace is resolved at call time: an explicit COURSEBRAIN_HOME wins, otherwise
+    the nearest ancestor of the working directory that already looks like a
+    workspace, otherwise the working directory itself.
+    """
+    override = os.environ.get(ENV_HOME)
+    if override:
+        return Path(override).expanduser().resolve()
+
+    current = (start or Path.cwd()).resolve()
+    for candidate in (current, *current.parents):
+        if any((candidate / marker).exists() for marker in MARKERS):
+            return candidate
+    return current
+
+
+def courses_dir(workspace: Path | None = None) -> Path:
+    return (workspace or find_workspace()) / "courses"
 
 
 @dataclass(frozen=True)
 class BrainPaths:
     """Cross-course index. Derivable from the notes, so never committed."""
 
-    root: Path = BRAIN_DIR
+    root: Path
+
+    @classmethod
+    def for_workspace(cls, workspace: Path | None = None) -> BrainPaths:
+        return cls(root=(workspace or find_workspace()) / ".brain")
 
     @property
     def index_db(self) -> Path:
@@ -57,7 +84,7 @@ class CourseConfig:
         )
 
     def dump(self, path: Path) -> None:
-        payload = {
+        payload: dict[str, Any] = {
             "id": self.id,
             "title": self.title,
             "source_url": self.source_url,
@@ -77,8 +104,8 @@ class CoursePaths:
     root: Path
 
     @classmethod
-    def for_course(cls, course_id: str, courses_dir: Path | None = None) -> CoursePaths:
-        return cls(root=(courses_dir or COURSES_DIR) / course_id)
+    def for_course(cls, course_id: str, root: Path | None = None) -> CoursePaths:
+        return cls(root=(root or courses_dir()) / course_id)
 
     @property
     def config(self) -> Path:
@@ -113,33 +140,13 @@ class CoursePaths:
         return self.root / "CONCEPTS.md"
 
     @property
-    def synthesis_md(self) -> Path:
-        return self.root / "SYNTHESIS.md"
-
-    @property
-    def style_md(self) -> Path:
-        return self.root / "STYLE.md"
-
-    @property
     def cache(self) -> Path:
         return self.root / ".cache"
-
-    @property
-    def index_db(self) -> Path:
-        return self.root / "index.db"
-
-    @property
-    def lancedb(self) -> Path:
-        return self.root / "lancedb"
-
-    @property
-    def checkpoints(self) -> Path:
-        return self.root / ".cache" / "checkpoints.db"
 
     def load_config(self) -> CourseConfig:
         if not self.config.exists():
             raise FileNotFoundError(
-                f"no course at {self.root}. create one with: course init <id> <url>"
+                f"no course at {self.root}. create one with: coursebrain init <id> <url>"
             )
         return CourseConfig.load(self.config)
 
@@ -151,8 +158,8 @@ class CoursePaths:
         return self.config.exists()
 
 
-def list_courses(courses_dir: Path | None = None) -> list[str]:
-    base = courses_dir or COURSES_DIR
+def list_courses(root: Path | None = None) -> list[str]:
+    base = root or courses_dir()
     if not base.exists():
         return []
     return sorted(d.name for d in base.iterdir() if (d / "course.yaml").exists())

@@ -1,8 +1,8 @@
 import pytest
 
-from pipeline.models import Chapter, Episode, Section
-from pipeline.profiles import Profile
-from pipeline.stages.distill import (
+from coursebrain.models import Chapter, Episode, Section
+from coursebrain.profiles import Profile
+from coursebrain.stages.distill import (
     Distillation,
     DistillError,
     Refusal,
@@ -105,8 +105,8 @@ def test_chunk_preserves_every_section():
 
 
 def test_build_system_fills_every_placeholder(profile, episode):
-    from pipeline.observability import Prompt
-    from pipeline.stages.distill import PROMPT_FILE
+    from coursebrain.observability import Prompt
+    from coursebrain.stages.distill import PROMPT_FILE
 
     prompt = Prompt(text=PROMPT_FILE.read_text(), version="test")
     system = build_system(profile, prompt, episode)
