@@ -35,6 +35,7 @@ nav:
 markdown_extensions:
   - admonition
   - attr_list
+  - md_in_html   # required for the grid-card block on the home page
   - def_list
   - tables
   - toc: { permalink: true }

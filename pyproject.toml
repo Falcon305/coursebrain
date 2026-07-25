@@ -61,6 +61,12 @@ dev = [
     "mypy>=1.14",
     "types-PyYAML>=6.0",
 ]
+# mkdocs is pinned below 2.0 deliberately: 2.0 removes the plugin system and the
+# theming system with no migration path, so an unpinned build would break silently.
+docs = [
+    "mkdocs>=1.6,<2.0",
+    "mkdocs-material>=9.5,<10.0",
+]
 
 [project.scripts]
 coursebrain = "coursebrain.cli:main"
