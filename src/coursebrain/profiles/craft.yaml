@@ -1,0 +1,44 @@
+name: craft
+description: Hands-on skills taught by demonstration — cooking, music, drawing, woodworking, sport, repair.
+concept_label: techniques
+
+capability_kind: method
+capability_guidance: |
+  Compile the technique, not the recipe. What is the actual motion, the order of
+  operations, the thing your hands or ears should be doing? A reader should be able to
+  attempt it tonight and know whether they got it right.
+
+  Keep the sensory checks — what it should look, sound, or feel like at each stage. Those
+  are how a practitioner self-corrects without a teacher watching, and they are the first
+  thing lost when this kind of material is summarised.
+
+  Failure modes matter as much as the method. Say what going wrong looks like and what
+  caused it.
+
+distill_guidance: |
+  Much of this material is demonstrated rather than explained, so expect the transcript to
+  be thin exactly where the teaching is densest. Record what was said, and be generous with
+  visual blind spots — an instructor saying "like this" over a silent demonstration is the
+  single most common shape here.
+
+  Keep quantities, timings, temperatures, and settings exactly as stated.
+
+sections:
+  - heading: TL;DR
+    guidance: Two or three sentences. What skill this builds and why it matters.
+
+  - heading: Techniques
+    guidance: >
+      Each as its own `###` subheading with a timestamp: the motion or procedure, in the
+      order it is performed. Be concrete about what the body, tool, or instrument does.
+
+  - heading: Checks and cues
+    guidance: >
+      How to tell it is working — what it should look, sound, feel, or taste like at each
+      stage. Include the numbers when given.
+
+  - heading: Common failures
+    guidance: What goes wrong, what it looks like when it does, and what caused it.
+
+  - heading: Tools and materials
+    guidance: What is needed, and where the instructor says the choice matters. Omit if not discussed.

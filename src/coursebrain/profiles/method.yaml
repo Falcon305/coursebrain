@@ -1,0 +1,39 @@
+name: method
+description: Processes and systems — research method, project management, productivity, debugging, negotiation, interviewing.
+concept_label: practices
+
+capability_kind: method
+capability_guidance: |
+  Compile the procedure someone could follow on Monday. What are the steps, in what order,
+  and what decides between them? A list of principles with no sequence is not a method.
+
+  Capture the decision points explicitly: at each fork, what does the practitioner look at
+  to choose? That judgement is the part that does not survive being summarised.
+
+  Include what the method deliberately does *not* do. Most processes are defined as much by
+  what they refuse as by what they prescribe.
+
+distill_guidance: |
+  Distinguish the step from the reason for the step. A process taught without its rationale
+  gets abandoned the first time it is inconvenient, so record why each part exists wherever
+  the instructor says.
+
+sections:
+  - heading: TL;DR
+    guidance: Two or three sentences. What this process is for and when it applies.
+
+  - heading: The process
+    guidance: >
+      The steps in order, each as a `###` subheading with a timestamp. Say what is done and
+      what it produces before moving on.
+
+  - heading: Decision points
+    guidance: >
+      Where the process forks, and what the practitioner looks at to choose. Omit if the
+      process is strictly linear.
+
+  - heading: Rationale
+    guidance: Why the process is shaped this way, and what it is protecting against.
+
+  - heading: Failure modes
+    guidance: How it goes wrong in practice, and the warning signs.

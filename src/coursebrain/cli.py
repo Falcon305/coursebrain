@@ -418,10 +418,16 @@ def compose(
         list[str] | None,
         typer.Option("--about", "-a", help="Subject course(s)", autocompletion=complete_course),
     ] = None,
+    method: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--method", "-m", help="Process or technique course(s)", autocompletion=complete_course
+        ),
+    ] = None,
     voice: Annotated[
         list[str] | None,
         typer.Option(
-            "--voice", "-v", help="Writing-craft course(s)", autocompletion=complete_course
+            "--voice", "-v", help="Craft or style course(s)", autocompletion=complete_course
         ),
     ] = None,
     lang: Annotated[
@@ -436,7 +442,7 @@ def compose(
     [dim]coursebrain compose -a monads -v prose-craft -L spanish-slang \\
         -t "explain monads to a beginner"[/]
     """
-    ids = [*(about or []), *(voice or []), *(lang or [])]
+    ids = [*(about or []), *(method or []), *(voice or []), *(lang or [])]
     if not ids:
         fail("name at least one course", "coursebrain compose --about <course>")
 

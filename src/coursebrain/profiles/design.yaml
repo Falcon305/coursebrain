@@ -1,0 +1,42 @@
+name: design
+description: Visual and interaction design — typography, layout, colour, UI, branding, illustration direction.
+concept_label: principles
+
+capability_kind: voice
+capability_guidance: |
+  Compile a design guide someone could apply to a real screen or page tonight. Rules,
+  concrete moves, and what to remove.
+
+  Keep specifics: actual values, ratios, type scales, spacing rules, colour relationships.
+  "Use plenty of whitespace" is not usable; "double your line-height before you touch
+  anything else" is.
+
+  Say what this style is *not*. Design guidance without anti-patterns leaves the reader
+  defaulting to their own habits.
+
+distill_guidance: |
+  This material is overwhelmingly visual, and the transcript will carry a fraction of it.
+  Be aggressive about visual blind spots — every "notice how this looks" is a real gap, and
+  pretending otherwise makes the note misleading.
+
+  Record exact values whenever spoken: sizes, weights, ratios, hex codes, spacing units.
+
+sections:
+  - heading: TL;DR
+    guidance: Two or three sentences. What design problem this addresses.
+
+  - heading: Principles
+    guidance: The stated rules, each as a `###` subheading, in the instructor's own words where possible.
+
+  - heading: Concrete moves
+    guidance: >
+      Specific, repeatable changes with real values — type scales, spacing, ratios,
+      colour relationships. Name the situation each is for.
+
+  - heading: Examples critiqued
+    guidance: >
+      What the instructor praises or condemns, and precisely why. Describe the visual as
+      exactly as the audio allows, and flag what could not be captured.
+
+  - heading: Anti-patterns
+    guidance: What not to do, and the result it produces.

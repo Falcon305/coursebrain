@@ -7,9 +7,10 @@ a programming course, and a writing course should combine into one piece of writ
 
 Packs carry a ``kind`` that decides how they compose:
 
-``domain``    what to say — concepts, decisions, gotchas
-``voice``     how to write it — craft rules, techniques, exemplars
-``language``  what language and register to say it in
+``domain``    what is true — concepts, claims, decisions, gotchas
+``method``    how to do the work — procedures, techniques, workflows
+``voice``     how the output should be shaped — craft rules, exemplars
+``language``  which language and register to say it in
 
 They operate at different levels, so they mostly stack rather than fight. Where they
 do collide, :data:`PRECEDENCE` states who wins instead of leaving it to chance.
@@ -29,7 +30,7 @@ from .paths import CoursePaths
 
 Kind = str
 
-KINDS: tuple[Kind, ...] = ("domain", "voice", "language")
+KINDS: tuple[Kind, ...] = ("domain", "method", "voice", "language")
 
 PRECEDENCE = """\
 When these conflict, resolve in this order:
@@ -39,7 +40,10 @@ When these conflict, resolve in this order:
    if a voice rule fights the language, the language wins.
 2. **Voice governs form.** Structure, rhythm, what to cut, how to open and close —
    applied *within* whatever the language allows.
-3. **Domain governs content.** What is true and worth saying. Never bend a fact to fit
+3. **Method governs process.** How to approach the work: the order of operations, the
+   technique, what to check. Style never overrides a procedure that exists for a reason —
+   if a craft rule would have you skip a step, keep the step.
+4. **Domain governs content.** What is true and worth saying. Never bend a fact to fit
    a stylistic rule; if the craft guidance would make a claim inaccurate, keep the claim
    and change the phrasing.
 
@@ -147,7 +151,8 @@ def render_skill(cap: Capability, course_id: str) -> str:
     )
     kind_line = {
         "domain": "This is **subject knowledge**: what is true, and why.",
-        "voice": "This is **craft guidance**: how to write, not what to write about.",
+        "method": "This is **method guidance**: how to do the work, step by step.",
+        "voice": "This is **craft guidance**: how to shape the output, not what to say.",
         "language": "This is **language guidance**: how to say it, in which register.",
     }[cap.kind]
 
@@ -206,8 +211,8 @@ class Composition:
             "",
         ]
 
-        # language first, then voice, then domain: the order the writer works in
-        for kind in ("language", "voice", "domain"):
+        # the order the work actually happens in: surface, form, process, content
+        for kind in ("language", "voice", "method", "domain"):
             for cap in grouped[kind]:
                 chunks += [f"## {cap.heading}", "", cap.body.strip(), ""]
 
@@ -246,7 +251,8 @@ def suggested_trigger(kind: Kind, title: str) -> str:
     """A fallback routing rule, used only when compilation did not supply one."""
     return {
         "domain": f"Use when the question touches {title}, or when working in that subject.",
-        "voice": f"Use when writing or editing prose, to apply the craft from {title}.",
+        "method": f"Use when carrying out the kind of work {title} teaches.",
+        "voice": f"Use when shaping output, to apply the craft from {title}.",
         "language": f"Use when writing or speaking the language taught in {title}.",
     }[kind]
 

@@ -1,0 +1,39 @@
+name: business
+description: Strategy, marketing, finance, operations, and management courses.
+concept_label: concepts
+
+capability_kind: domain
+capability_guidance: |
+  Compile the model and the judgement, not the anecdotes. What framework is being taught,
+  what does it predict, and where does the instructor say it breaks down?
+
+  Keep the numbers and the definitions exact — a metric described loosely is worse than
+  none, because it will be computed wrong.
+
+  Business material is heavy on stories. Keep a story only when it carries the reasoning;
+  drop it when the point survives without it.
+
+distill_guidance: |
+  Separate what the instructor claims from what they attribute to a case study, and from
+  what they present as contested. Business advice is frequently context-dependent, and
+  flattening that into rules is how it becomes wrong.
+
+sections:
+  - heading: TL;DR
+    guidance: Two or three sentences. The argument, not the topic.
+
+  - heading: Concepts
+    guidance: Each as a `###` subheading with a timestamp — what it is and what problem it solves.
+
+  - heading: Frameworks and metrics
+    guidance: >
+      Models, formulas, and metrics with exact definitions. Say how each is computed and
+      what it is meant to tell you.
+
+  - heading: Decisions & rationale
+    guidance: >
+      Recommended calls and the reasoning behind them, including what the instructor says
+      would change the answer.
+
+  - heading: Caveats
+    guidance: Where this does not apply, and what the instructor flags as contested or context-dependent.

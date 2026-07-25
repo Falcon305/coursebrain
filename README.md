@@ -22,28 +22,71 @@ it will explain the programming — in Spanish, in that register, following that
 > **No API key.** Inside Claude Code the agent does the distilling, so there is nothing to
 > pay for beyond what you are already running.
 
-## Install
+## Set it up
+
+**Easiest: hand this page to your agent.** Paste the repository URL into Claude Code and
+say *"set this up"*. Everything it needs is in the block below.
+
+<!-- AGENT SETUP: follow these steps verbatim. -->
+
+> ### Instructions for a coding agent
+>
+> **Step 1 — install the CLI.** `uv` is the only prerequisite; if it is missing, install it
+> with `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+>
+> ```sh
+> uv tool install "coursebrain[rag] @ git+https://github.com/Falcon305/coursebrain"
+> coursebrain doctor
+> ```
+>
+> `doctor` prints a checklist and the exact fix for anything broken. Do not continue past a
+> failing check — resolve it and re-run.
+>
+> **Step 2 — install the Claude Code plugin**, which adds `/learn` and `/compose`:
+>
+> ```
+> /plugin marketplace add Falcon305/coursebrain
+> /plugin install coursebrain
+> ```
+>
+> **Step 3 — choose where courses live.** Ask the user which they want, then confirm the
+> choice back to them:
+>
+> - **Globally** — one library shared by every project:
+>   ```sh
+>   echo 'export COURSEBRAIN_HOME="$HOME/.coursebrain"' >> ~/.zshrc   # or ~/.bashrc
+>   mkdir -p ~/.coursebrain/courses
+>   ```
+>   Export skills with `--scope user` so they load everywhere.
+>
+> - **Locally** — courses belong to this project and are committed with it:
+>   ```sh
+>   mkdir -p courses
+>   ```
+>   Nothing else to configure: `coursebrain` walks up from the working directory looking
+>   for a `courses/` folder, so being anywhere inside the project is enough.
+>
+> **Step 4 — check it works** and tell the user what to run next:
+>
+> ```sh
+> coursebrain doctor
+> coursebrain profiles
+> ```
+
+<details>
+<summary>Prefer to do it yourself?</summary>
 
 ```sh
-uv tool install "coursebrain[rag]"
+uv tool install "coursebrain[rag] @ git+https://github.com/Falcon305/coursebrain"
 coursebrain doctor
 ```
 
-`doctor` checks every dependency and prints the exact command to fix anything broken.
+`[rag]` adds semantic search — about 100 MB (sqlite-vec plus static embeddings, **no
+PyTorch**). Without it everything still works on keyword search, and `doctor` says so rather
+than failing mysteriously.
 
-As a Claude Code plugin, for the `/learn` and `/compose` commands:
-
-```
-/plugin marketplace add Falcon305/coursebrain
-/plugin install coursebrain
-```
-
-<details>
-<summary>What is the <code>rag</code> extra?</summary>
-
-Semantic search — about 100 MB (sqlite-vec plus static embeddings, **no PyTorch**). Without
-it everything still works on keyword search alone, and `doctor` says so rather than failing
-mysteriously.
+Set `COURSEBRAIN_HOME` for one shared library, or just make a `courses/` directory inside a
+project for a local one.
 </details>
 
 ## Use it
@@ -108,6 +151,10 @@ combine:
 ```sh
 coursebrain compose --about react --voice prose-craft --lang spanish \
     --task "explain revalidation to a beginner"
+
+# or with a process course in the mix
+coursebrain compose --about sourdough --method knife-skills --voice food-writing \
+    --task "write the method section"
 ```
 
 ## How it works
@@ -130,13 +177,18 @@ Packs carry a `kind` that decides how they stack:
 
 | kind | from profiles | governs |
 | --- | --- | --- |
-| `domain` | programming, academic, general | what is true and worth saying |
-| `voice` | writing | how the prose moves |
+| `domain` | programming, academic, business, general | what is true and worth saying |
+| `method` | craft, method | how to do the work — steps, technique, checks |
+| `voice` | writing, design | how the output is shaped |
 | `language` | language | which language and register |
 
+Nine profiles ship, covering software, lectures, business, writing, design, languages,
+hands-on skills, and processes. `coursebrain profiles` lists them; adding one is a YAML
+file.
+
 They work at different layers, so they stack rather than fight. Where they do collide,
-`compose` states the precedence: language governs surface, voice governs form, domain
-governs content, and accuracy outranks style.
+`compose` states the precedence: language governs surface, voice governs form, method
+governs process, domain governs content — and accuracy outranks style.
 
 ## Commands
 

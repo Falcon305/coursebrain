@@ -128,6 +128,14 @@ def test_skill_states_which_kind_it_is():
     assert "craft guidance" in render_skill(cap("voice"), "prose")
     assert "subject knowledge" in render_skill(cap("domain"), "monads")
     assert "language guidance" in render_skill(cap("language"), "es")
+    assert "method guidance" in render_skill(cap("method"), "cooking")
+
+
+def test_every_kind_renders_a_skill():
+    from coursebrain.capability import KINDS
+
+    for kind in KINDS:
+        assert render_skill(cap(kind), "x").startswith("---")
 
 
 def test_skill_points_back_at_the_notes_for_depth():
@@ -143,10 +151,29 @@ def test_skill_carries_the_conflict_rules():
 # --- composition ----------------------------------------------------------
 
 
-def test_compose_orders_language_then_voice_then_domain():
-    composition = Composition(parts=[cap("domain", "d"), cap("voice", "v"), cap("language", "l")])
+def test_compose_orders_by_layer():
+    composition = Composition(
+        parts=[cap("domain", "d"), cap("voice", "v"), cap("language", "l"), cap("method", "m")]
+    )
     text = composition.render()
-    assert text.index("LANGUAGE") < text.index("VOICE") < text.index("DOMAIN")
+    assert (
+        text.index("LANGUAGE") < text.index("VOICE") < text.index("METHOD") < text.index("DOMAIN")
+    )
+
+
+def test_method_is_a_supported_kind():
+    assert "METHOD" in Composition(parts=[cap("method", "m")]).render()
+
+
+def test_precedence_covers_every_kind():
+    from coursebrain.capability import KINDS
+
+    for kind in KINDS:
+        assert kind.capitalize() in PRECEDENCE or kind in PRECEDENCE.lower()
+
+
+def test_method_never_loses_a_step_to_style():
+    assert "keep the step" in PRECEDENCE
 
 
 def test_compose_lists_what_is_loaded():
@@ -217,7 +244,17 @@ def test_notes_digest_without_notes_says_what_to_run(tmp_path):
 
 @pytest.mark.parametrize(
     ("profile", "expected"),
-    [("programming", "domain"), ("writing", "voice"), ("language", "language")],
+    [
+        ("programming", "domain"),
+        ("academic", "domain"),
+        ("business", "domain"),
+        ("writing", "voice"),
+        ("design", "voice"),
+        ("language", "language"),
+        ("craft", "method"),
+        ("method", "method"),
+        ("general", "domain"),
+    ],
 )
 def test_profiles_declare_their_kind(profile, expected):
     from coursebrain.profiles import Profile

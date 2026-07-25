@@ -1,42 +1,57 @@
 #!/usr/bin/env bash
-# Install coursebrain so the plugin's commands have something to call.
+# Install the coursebrain CLI.
 #
-# A Claude Code plugin is markdown and JSON — it cannot install Python for you.
-# This script does the one thing it can: put the CLI on PATH, or fail with the
-# exact command you need to run.
+# Safe to run from anywhere, including a bare `curl | bash` with no clone. A Claude
+# Code plugin is markdown and JSON — it cannot install Python for you — so this does
+# the one thing it can: put the CLI on PATH, or fail with the exact command to run.
+#
+#   scripts/bootstrap.sh              # install, or upgrade if already present
+#   scripts/bootstrap.sh --force      # reinstall even if already present
 set -euo pipefail
 
-say() { printf '%s\n' "$*" >&2; }
-die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+REPO="${COURSEBRAIN_REPO:-https://github.com/Falcon305/coursebrain}"
+SPEC="coursebrain[rag] @ git+${REPO}"
 
-if command -v coursebrain >/dev/null 2>&1; then
-    say "coursebrain already installed: $(coursebrain --version)"
+say()  { printf '%s\n' "$*" >&2; }
+die()  { printf '\nerror: %s\n' "$*" >&2; exit 1; }
+
+force=0
+[ "${1:-}" = "--force" ] && force=1
+
+if [ "$force" -eq 0 ] && command -v coursebrain >/dev/null 2>&1; then
+    say "coursebrain is already installed: $(coursebrain --version)"
+    say "re-run with --force to reinstall"
     exec coursebrain doctor
 fi
 
 if ! command -v uv >/dev/null 2>&1; then
-    die "uv is not installed.
+    die "uv is not installed, and it is the only prerequisite.
 
-  Install it:  curl -LsSf https://astral.sh/uv/install.sh | sh
-  Then re-run: ${BASH_SOURCE[0]}
+  Install it:
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-(uv is the fastest way to get an isolated Python tool. If you would rather use
-pip: pipx install 'coursebrain[rag]')"
+  Then run this script again. (Prefer pip? \`pipx install 'coursebrain[rag]'\` also works
+  once the package is on PyPI; until then use uv, which can install from git.)"
 fi
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-if [ -f "$root/pyproject.toml" ]; then
-    say "installing coursebrain from $root"
-    uv tool install --force --with-editable "$root" "coursebrain[rag] @ $root" 2>/dev/null \
-        || uv tool install --force "$root"'[rag]'
+# a local checkout wins over the remote: contributors test their own changes
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd || true)"
+if [ -n "$root" ] && [ -f "$root/pyproject.toml" ]; then
+    say "installing from this checkout: $root"
+    uv tool install --force "coursebrain[rag] @ ${root}"
 else
-    say "installing coursebrain from PyPI"
-    uv tool install --force 'coursebrain[rag]'
+    say "installing from ${REPO}"
+    uv tool install --force "$SPEC"
 fi
 
-command -v coursebrain >/dev/null 2>&1 || die "install finished but coursebrain is not on PATH.
-Add uv's tool directory to your shell profile:  uv tool update-shell"
+if ! command -v coursebrain >/dev/null 2>&1; then
+    die "installed, but coursebrain is not on PATH yet.
 
-say "installed: $(coursebrain --version)"
+  Run:  uv tool update-shell
+  Then open a new shell, or add uv's tool bin directory to PATH manually."
+fi
+
+say ""
+say "installed $(coursebrain --version)"
+say ""
 exec coursebrain doctor
