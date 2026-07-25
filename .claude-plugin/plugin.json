@@ -1,0 +1,10 @@
+{
+  "name": "coursebrain",
+  "version": "0.1.0",
+  "description": "Learn from long-form video. Turns YouTube courses into cited notes and composable skills your agent can write from.",
+  "author": { "name": "Hatim Razani" },
+  "homepage": "https://github.com/Falcon305/coursebrain",
+  "repository": "https://github.com/Falcon305/coursebrain",
+  "license": "MIT",
+  "keywords": ["youtube", "notes", "rag", "knowledge", "learning", "transcripts"]
+}

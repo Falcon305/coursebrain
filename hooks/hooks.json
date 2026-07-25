@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v coursebrain >/dev/null 2>&1 || printf '%s\\n' 'coursebrain: CLI not found. The /learn command needs it. Install with: uv tool install \"coursebrain[rag]\"  (or run ${CLAUDE_PLUGIN_ROOT}/scripts/bootstrap.sh)'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

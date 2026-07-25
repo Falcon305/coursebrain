@@ -1,0 +1,18 @@
+{
+  "name": "coursebrain",
+  "owner": { "name": "Hatim Razani", "url": "https://github.com/Falcon305" },
+  "metadata": {
+    "description": "Turn long-form video into knowledge your agent can read, cite, and write from.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "coursebrain",
+      "source": "./",
+      "description": "Learn a YouTube course, then ask it questions or compose several courses into one piece of writing.",
+      "version": "0.1.0",
+      "category": "knowledge",
+      "keywords": ["youtube", "notes", "rag", "learning"]
+    }
+  ]
+}

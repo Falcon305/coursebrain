@@ -1,78 +1,136 @@
 # coursebrain
 
-Turns long-form video into a durable knowledge base that coding agents and humans can both read.
+**Learn from long-form video, then write from what you learned.**
 
-Point it at a YouTube video, playlist, or channel. It pulls transcripts, distills them into
-structured markdown notes with timestamp links back to the source, and builds a hybrid keyword +
-semantic index over the result. Notes live in git, so the knowledge survives the video being taken
-down and travels to anyone who clones the repo.
+Point it at a YouTube course. It pulls transcripts, distills each episode into structured
+markdown notes with timestamp links back to the source, and builds a hybrid keyword +
+semantic index over the result.
 
-Domain-general by design. A programming series, a university course, a language course and a
-writing course each get a note schema that suits them, set by the course's `profile`.
+Then the part that makes it more than a note-taker: each course **compiles into a skill**.
+Feed it a Spanish course, a programming course, and a writing course, and it can write
+about the programming — in Spanish, in that register, following that craft guidance. Three
+courses, one piece of output, because the packs are built to stack.
 
-**No API key required.** Inside Claude Code, the agent does the distilling — run `/learn <url>`.
-There is an optional unattended path through the Anthropic API for running outside an agent
-session, but it is not the default.
+**No API key.** Inside Claude Code the agent does the distilling, so there is nothing to
+pay for beyond what you are already running.
 
-## Setup
+## Install
 
-```sh
-uv venv --python 3.12
-uv pip install -e ".[dev,rag]"
+As a Claude Code plugin:
+
+```
+/plugin marketplace add Falcon305/coursebrain
+/plugin install coursebrain
 ```
 
-`rag` adds semantic search (~100 MB: sqlite-vec plus static embeddings, no PyTorch). Without it
-everything still works on keyword search alone.
+Then install the CLI the commands call:
+
+```sh
+uv tool install "coursebrain[rag]"
+coursebrain doctor
+```
+
+`doctor` checks everything and prints the exact fix for anything broken. The `rag` extra
+adds semantic search (~100 MB — sqlite-vec plus static embeddings, no PyTorch). Without it
+everything still works on keyword search.
 
 ## Use
 
-In Claude Code:
-
 ```
 /learn https://youtube.com/playlist?list=...
+/compose an explainer about monads, in Spanish, using the prose course
 ```
 
-Or by hand:
+Or from the shell:
 
 ```sh
-course init <id> <url> --profile programming
-course prepare <id>          # stages one task file per episode
-# read each .task.md, write the note body to the .body.md path it names
-course assemble <id>         # bodies -> notes, frontmatter added mechanically
-course index                 # INDEX.md, CONCEPTS.md, BRAIN.md, search index
-course verify <id>           # structural check
-course ask "how does revalidation work"
+coursebrain learn <url> --profile programming   # fetch + stage
+coursebrain assemble <id>                       # notes
+coursebrain index                               # searchable
+coursebrain ask "how does revalidation work"    # cited answers
+
+coursebrain compile <id>                        # notes -> capability pack
+coursebrain skill <id>                          # pack -> Claude Code skill
+coursebrain compose -a monads -v prose -L spanish -t "explain it simply"
 ```
 
 A single video and a 200-video playlist are the same command.
 
-## Layout
+## How it works
 
 ```
-pipeline/           stages, retrieval, cli
-courses/<id>/       config, raw captions, transcripts, notes, evals
-.claude/            the /learn command and the course-knowledge skill
-tests/
+video ──▶ transcripts ──▶ notes            deep, cited, searchable
+                            │
+                            ▼
+                       capability pack     applicable, ~500 words
+                            │
+                            ▼
+                       SKILL.md            composes with other courses
 ```
 
-Within a course, anything irreplaceable is committed and anything derivable is ignored. Raw
-captions are committed on purpose: videos get deleted, and once the captions are gone they are
-gone. Indexes live in `.brain/` and rebuild offline with no API key.
+A **note** answers *"what did episode 7 say?"*. A **capability pack** answers *"how do I
+write like this?"* — prescriptive, self-contained, useless as an archive. Only the second
+composes, which is the point.
+
+Packs carry a `kind` that decides how they stack:
+
+| kind | from profiles | governs |
+|---|---|---|
+| `domain` | programming, academic, general | what is true and worth saying |
+| `voice` | writing | how the prose moves |
+| `language` | language | which language and register |
+
+They work at different layers, so they mostly stack rather than fight. Where they do
+collide, `compose` states the precedence — language governs surface, voice governs form,
+domain governs content, and accuracy outranks style.
 
 ## Retrieval
 
-Keyword (SQLite FTS5, BM25) and semantic (sqlite-vec) search run together and their rankings are
-fused with Reciprocal Rank Fusion. Both indexes live in **one SQLite file**, so there is no second
+Keyword (SQLite FTS5, BM25) and semantic (sqlite-vec) search run together, fused with
+Reciprocal Rank Fusion. Both indexes live in **one SQLite file**, so there is no second
 store to keep in sync.
 
-Semantic search earns its place on vocabulary mismatch — "how do I deal with stale data" finds a
-section titled *Revalidation* that keyword search misses entirely. That case is a regression test
-(`tests/test_vectors.py`).
+Semantic search earns its place on vocabulary mismatch: *"how do I deal with stale data"*
+finds a section titled **Revalidation** that keyword search misses entirely. That case is a
+regression test.
 
-`course eval <id>` scores retrieval against a question set so changes are measured rather than
-guessed. Write the questions before tuning.
+`coursebrain eval <id>` scores retrieval against a question set, so tuning is measured
+rather than guessed. Write the questions before you tune.
 
-## Requirements
+## Extending it
 
-Python 3.12+ and `yt-dlp`. An `ANTHROPIC_API_KEY` is needed only for the optional `course build`
-path.
+Sources and profiles are plugins. A profile is a YAML file. A source is a class registered
+through an entry point:
+
+```toml
+[project.entry-points."coursebrain.sources"]
+vimeo = "coursebrain_vimeo:VimeoSource"
+```
+
+Implement `matches`, `enumerate`, `fetch`, and `subtitle_path`, using
+`src/coursebrain/sources/youtube.py` as the reference. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## What it does not do
+
+Notes cover what the speaker **said**. Diagrams, slides, and on-screen code with no
+narration are not captured — they are logged as timestamped **visual blind spots** rather
+than silently omitted, which doubles as the work list for a later visual pass.
+
+Auto-generated captions mangle identifiers and proper nouns. Notes mark transcript-derived
+content as such and flag what could not be recovered. Do not treat a note as authoritative
+for exact code; that is what the companion repository is for.
+
+## Layout
+
+```
+src/coursebrain/     stages, retrieval, capability, cli
+courses/<id>/        config, raw captions, transcripts, notes, CAPABILITY.md
+commands/ skills/    the Claude Code plugin
+```
+
+Within a course, anything irreplaceable is committed and anything derivable is ignored. Raw
+captions are committed on purpose: videos get deleted, and the captions go with them.
+
+## Licence
+
+MIT.
