@@ -1,16 +1,31 @@
 # Composition
 
-This is the feature the rest of the project exists to serve.
-
 ## The problem
 
-You have three courses: one teaching Mexican Spanish slang, one on monads, one on prose
-craft. Individually each is a folder of notes you can search. But what you actually want is
-to *write something* that uses all three at once — an explanation of monads, in Spanish, in
-that register, following that craft guidance.
+Someone who has studied a subject properly does not answer you by quoting a source. They
+answer from judgement — they know which claim to trust, which advice is obsolete, what the
+instructor spent four minutes warning against, and what to actually do. That knowledge is
+*integrated*. It has stopped being a set of quotes and become a way of working.
 
-Searching three folders does not get you there. Retrieval returns fragments of what was
-said; it does not tell you how to write.
+Retrieval never gets there. A search over your notes returns the passage most similar to your
+question. It cannot tell you that two episodes contradict each other and which one is right,
+or that the technique in episode 3 is the one everybody skips. Those are properties of the
+course as a whole, not of any passage in it.
+
+**Compilation is how a course stops being an archive and becomes competence.** Reading every
+note at once and asking "what does someone who has done this actually know?" produces a
+different artefact from any amount of searching — one that fits in context, applies without
+being asked, and can be held alongside others.
+
+## Why several at once
+
+Expertise is rarely one layer. Doing real work usually needs several kinds of knowing at the
+same time: what is true, how to carry out the procedure, how the output should read, and what
+language it should be in.
+
+A person who has studied all four applies them together without noticing. Four separate
+searches cannot, because the layers have to be resolved against each other — and when they
+conflict, something has to decide.
 
 ## Notes versus capability packs
 

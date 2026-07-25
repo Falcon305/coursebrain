@@ -48,8 +48,16 @@ For each pending episode:
 Do episodes one at a time and actually read each transcript. Never write a note from the title
 alone; a fabricated note is worse than a missing one.
 
-The task files are large. If a transcript is long, read the task file in chunks rather than
-skipping content — coverage of the whole episode is the point.
+**Read the whole task file before writing.** They are large, and a long transcript will not
+fit in one read. Read it in chunks until you reach the end — check the last timestamp in the
+file against the episode duration if you are unsure you got there.
+
+This is the single easiest way to produce a bad note. If you stop reading early you will not
+notice: the note looks complete, and you will confidently record "the transcript ends here"
+or "this section has no captions" about material that is simply further down the file. A
+fabricated gap is worse than a missing note, because it tells a future reader the source does
+not cover something it covers well. Courses also routinely save their most important point
+for the last two minutes.
 
 ## 4. Assemble, index, verify
 

@@ -1,15 +1,14 @@
 # coursebrain
 
-**Learn from long-form video, then write from what you learned.**
+**Point it at 20 playlists about one subject. Your agent doesn't search them — it studied them.**
 
-Point it at a YouTube course. It pulls transcripts, distills each episode into structured
-markdown notes with timestamp links back to the source, and builds a hybrid keyword +
-semantic index over the result.
+Every episode becomes a cited note with timestamps back to the source. Those notes then
+**compile into Claude Code skills** your agent carries and applies, the way someone who took
+the course would.
 
-Then the part that makes it more than a note-taker: each course **compiles into a skill**.
-Feed it a Spanish course, a programming course, and a writing course, and it can write about
-the programming — in Spanish, in that register, following that craft guidance. Three courses,
-one piece of output.
+The distinction that matters: retrieval hands you a passage someone said once. Someone who
+studied the material has judgement — they know which episode to trust, what the traps are, and
+what to do differently. Compilation is how you get the second thing.
 
 !!! tip "No API key"
     Inside Claude Code the agent does the distilling. There is nothing to pay for beyond

@@ -14,8 +14,16 @@ class StageRecord:
     trace_id: str | None = None
     notes: str = ""
 
+    # dropping an empty *required* field makes the record unreadable on reload —
+    # an episode with no captions legitimately has an empty output_hash
+    OPTIONAL = ("trace_id", "notes")
+
     def to_dict(self) -> dict[str, Any]:
-        return {k: v for k, v in asdict(self).items() if v not in (None, "")}
+        return {
+            k: v
+            for k, v in asdict(self).items()
+            if k not in StageRecord.OPTIONAL or v not in (None, "")
+        }
 
 
 @dataclass
@@ -42,7 +50,17 @@ class EpisodeRecord:
             index=int(d["index"]),
             title=d["title"],
             caption_source=d.get("caption_source", "none"),
-            stages={k: StageRecord(**v) for k, v in (d.get("stages") or {}).items()},
+            stages={
+                k: StageRecord(
+                    input_hash=v.get("input_hash", ""),
+                    output_hash=v.get("output_hash", ""),
+                    tool=v.get("tool", ""),
+                    trace_id=v.get("trace_id"),
+                    notes=v.get("notes", ""),
+                )
+                # tolerate manifests written before empty required fields were kept
+                for k, v in (d.get("stages") or {}).items()
+            },
         )
 
 

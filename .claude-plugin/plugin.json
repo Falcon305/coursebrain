@@ -1,10 +1,19 @@
 {
   "name": "coursebrain",
   "version": "0.1.0",
-  "description": "Learn from long-form video. Turns YouTube courses into cited notes and composable skills your agent can write from.",
-  "author": { "name": "Hatim Razani" },
+  "description": "Point your agent at YouTube playlists on a subject and it studies them \u2014 cited notes with timestamps, compiled into skills it applies.",
+  "author": {
+    "name": "Hatim Razani"
+  },
   "homepage": "https://github.com/Falcon305/coursebrain",
   "repository": "https://github.com/Falcon305/coursebrain",
   "license": "MIT",
-  "keywords": ["youtube", "notes", "rag", "knowledge", "learning", "transcripts"]
+  "keywords": [
+    "youtube",
+    "notes",
+    "rag",
+    "knowledge",
+    "learning",
+    "transcripts"
+  ]
 }

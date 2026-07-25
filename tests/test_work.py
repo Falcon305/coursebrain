@@ -131,3 +131,67 @@ def test_strip_preamble_drops_anything_before_the_first_heading(preamble):
 
 def test_strip_preamble_leaves_a_clean_body_alone():
     assert work.strip_preamble(BODY) == BODY.strip()
+
+
+def test_manifest_survives_an_episode_with_no_captions(tmp_path):
+    """A skipped episode has an empty output_hash. Stripping it on write made the
+    manifest unloadable, which only showed up on a real playlist."""
+    from coursebrain.manifest import Manifest, StageRecord
+
+    path = tmp_path / "manifest.json"
+    manifest = Manifest(path, "demo")
+    record = manifest.record("silent", 2, "No captions here")
+    record.caption_source = "none"
+    record.stages["fetch"] = StageRecord(
+        input_hash="silent", output_hash="", tool="yt-dlp 1.0", notes="no captions"
+    )
+    manifest.save()
+
+    reloaded = Manifest.load(path, "demo")
+    stage = reloaded.episodes["silent"].stages["fetch"]
+    assert stage.output_hash == ""
+    assert stage.notes == "no captions"
+
+
+def test_manifest_omits_optional_fields_when_empty(tmp_path):
+    from coursebrain.manifest import Manifest, StageRecord
+
+    path = tmp_path / "manifest.json"
+    manifest = Manifest(path, "demo")
+    manifest.record("v", 1, "T").stages["fetch"] = StageRecord(
+        input_hash="a", output_hash="b", tool="t"
+    )
+    manifest.save()
+    written = path.read_text()
+    assert "trace_id" not in written
+    assert "notes" not in written
+    assert '"output_hash": "b"' in written
+
+
+def test_manifest_loads_records_written_by_an_older_version(tmp_path):
+    """Manifests written before the fix omit empty required fields entirely."""
+    import json
+
+    from coursebrain.manifest import Manifest
+
+    path = tmp_path / "manifest.json"
+    path.write_text(
+        json.dumps(
+            {
+                "course": "demo",
+                "pipeline_version": "1",
+                "episodes": [
+                    {
+                        "video_id": "old",
+                        "index": 1,
+                        "title": "Legacy",
+                        "caption_source": "none",
+                        "stages": {"fetch": {"input_hash": "x", "tool": "yt-dlp"}},
+                    }
+                ],
+            }
+        )
+    )
+    stage = Manifest.load(path, "demo").episodes["old"].stages["fetch"]
+    assert stage.output_hash == ""
+    assert stage.tool == "yt-dlp"

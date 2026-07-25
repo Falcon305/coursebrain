@@ -18,16 +18,35 @@
 
 ---
 
-**Throw a link at it.** A video, a playlist, a whole channel — coursebrain pulls the
-transcripts, turns each episode into structured notes with timestamps back to the source,
-and makes the lot searchable.
+**Point it at 20 playlists about one subject. Your agent doesn't search them — it studied them.**
 
-Then the part that makes it more than a note-taker: **courses compile into skills, and
-skills compose**. Give it a Spanish course, a programming course, and a writing course, and
-it will explain the programming — in Spanish, in that register, following that craft.
+Every episode becomes a cited note with timestamps back to the source. Those notes compile into
+Claude Code skills your agent carries and applies, the way someone who actually took the course
+would — not the way a search box does.
 
-> **No API key.** Inside Claude Code the agent does the distilling, so there is nothing to
-> pay for beyond what you are already running.
+- **Cited by construction.** Every claim carries a video ID and a timestamp. Anything the
+  source didn't say doesn't appear, and gaps are recorded as gaps.
+- **Nothing is retrieved at answer time.** The expertise is compiled ahead of time into skills
+  the agent already holds. Search exists, but it is the fallback, not the product.
+- **It compounds.** Add another playlist and the skills deepen. Point it at one subject long
+  enough and it stops being notes and starts being competence.
+
+> **No API key.** Inside Claude Code the agent does the studying, so there is nothing to pay
+> for beyond what you are already running.
+
+## The problem
+
+There are hundreds of hours of genuinely good material on your subject sitting on YouTube, and
+your agent has watched none of it.
+
+Retrieval does not fix this. Ask a RAG system a question and it hands you a passage someone
+said once; it cannot tell you which of two contradictory episodes to trust, or that the
+instructor spent four minutes explaining why the obvious approach is wrong. A quote is not
+judgement. Someone who studied the material has judgement — they know what matters, what the
+traps are, and what to do differently because of it.
+
+That is the difference this tool is built around: **notes you can search, compiled into skills
+your agent reasons from.**
 
 ## Set it up
 
