@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import work
 from .cache import Cache, content_hash
 from .manifest import Manifest, StageRecord
-from .models import Segment
+from .models import Episode, Segment
 from .observability import Observability
 from .paths import CoursePaths
 from .profiles import Profile
-from .stages import fetch, normalize, segment
+from .sources import Source, SourceError, SourceItem, source_for
+from .stages import normalize, segment
 from .stages.distill import (
     DEFAULT_MODEL,
     PROMPT_FILE,
@@ -26,6 +28,8 @@ from .stages.distill import (
 )
 
 Logger = Callable[[str], None]
+Progress = Callable[[str, int, int], None]
+DEFAULT_WORKERS = 8
 
 
 @dataclass
@@ -55,6 +59,10 @@ class BuildReport:
             parts.append(f"{len(self.failed)} failed")
         return " | ".join(parts) or "nothing to do"
 
+    @property
+    def ok(self) -> bool:
+        return not self.failed
+
 
 def _write_transcript(path: Path, segments: list[Segment]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -62,6 +70,14 @@ def _write_transcript(path: Path, segments: list[Segment]) -> None:
         "\n".join(json.dumps(s.to_dict(), ensure_ascii=False) for s in segments) + "\n",
         encoding="utf-8",
     )
+
+
+def _read_transcript(path: Path) -> list[Segment]:
+    return [
+        Segment.from_dict(json.loads(line))
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
 
 
 def _distill_cache_key(
@@ -86,13 +102,60 @@ def _distill_cache_key(
     )
 
 
+def _fetch_all(
+    source: Source,
+    items: list[tuple[int, SourceItem]],
+    raw_dir: Path,
+    language: str,
+    workers: int,
+    on_progress: Progress | None,
+) -> tuple[dict[int, Episode], dict[int, str]]:
+    """Fetch episodes concurrently. Network-bound, so threads are the right tool.
+
+    Returns episodes and errors both keyed by playlist index, so the caller can
+    process them in course order regardless of completion order.
+    """
+    episodes: dict[int, Episode] = {}
+    errors: dict[int, str] = {}
+    total = len(items)
+    done = 0
+
+    if total == 1:  # avoid pool overhead and keep tracebacks simple
+        index, item = items[0]
+        try:
+            episodes[index] = source.fetch(item, index, raw_dir, language)
+        except (SourceError, OSError) as e:
+            errors[index] = str(e)
+        if on_progress:
+            on_progress(items[0][1].title, 1, 1)
+        return episodes, errors
+
+    with ThreadPoolExecutor(max_workers=min(workers, total)) as pool:
+        futures = {
+            pool.submit(source.fetch, item, index, raw_dir, language): (index, item)
+            for index, item in items
+        }
+        for future in as_completed(futures):
+            index, item = futures[future]
+            try:
+                episodes[index] = future.result()
+            except (SourceError, OSError) as e:
+                errors[index] = str(e)
+            done += 1
+            if on_progress:
+                on_progress(item.title, done, total)
+    return episodes, errors
+
+
 def prepare_course(
     course_id: str,
     courses_dir: Path | None = None,
     limit: int | None = None,
     only: int | None = None,
     force: bool = False,
+    workers: int = DEFAULT_WORKERS,
     log: Logger = print,
+    on_progress: Progress | None = None,
 ) -> BuildReport:
     """Fetch, normalize, segment, and stage each episode for distillation.
 
@@ -107,58 +170,62 @@ def prepare_course(
     manifest = Manifest.load(paths.manifest, course_id)
     report = BuildReport()
 
-    tool = fetch.ytdlp_version()
-    entries = fetch.enumerate_source(config.source_url, limit=limit)
-    log(f"{course_id}: {len(entries)} video(s) at source, profile '{profile.name}'")
+    source = source_for(config.source_url)
+    tool = source.version()
+    items = source.enumerate(config.source_url, limit=limit)
+    wanted = [(i, it) for i, it in enumerate(items, start=1) if only is None or i == only]
+    if not wanted:
+        log(f"episode {only} not found: the course has {len(items)}")
+        return report
+
+    log(f"{course_id}: {len(wanted)} episode(s) via {source.name}, profile '{profile.name}'")
+    episodes, errors = _fetch_all(source, wanted, paths.raw, config.language, workers, on_progress)
 
     prompt = obs.get_prompt("distill", PROMPT_FILE)
 
-    for index, (video_id, raw_title) in enumerate(entries, start=1):
-        if only is not None and index != only:
-            continue
-        label = f"[{index:02d}] {raw_title[:56]}"
-        try:
-            episode = fetch.fetch_episode(paths, video_id, index, config.language)
-        except fetch.FetchError as e:
-            log(f"{label} — fetch failed: {e}")
-            report.failed.append(video_id)
+    for index, item in wanted:
+        label = f"[{index:02d}] {item.title[:56]}"
+        if index in errors:
+            log(f"{label} — fetch failed: {errors[index]}")
+            report.failed.append(item.id)
             continue
 
-        record = manifest.record(video_id, index, episode.title)
+        episode = episodes[index]
+        record = manifest.record(item.id, index, episode.title)
         record.caption_source = episode.caption_source
         report.fetched += 1
 
         if episode.needs_transcription:
             log(f"{label} — no captions, skipped")
-            report.skipped.append(video_id)
+            report.skipped.append(item.id)
             record.stages["fetch"] = StageRecord(
-                input_hash=video_id, output_hash="", tool=tool, notes="no captions"
+                input_hash=item.id, output_hash="", tool=tool, notes="no captions"
             )
             continue
 
-        vtt = fetch.subtitle_path(paths, video_id, config.language)
+        vtt = source.subtitle_path(item.id, paths.raw, config.language)
         if vtt is None:
-            # the fetch stage reported captions but the file is gone: a partial
-            # download or a hand-edited raw/ directory. Fail this episode loudly
-            # rather than crashing the whole run on an attribute error.
+            # fetch reported captions but the file is gone: a partial download or a
+            # hand-edited raw/. Fail this episode rather than crash the whole run.
             log(f"{label} — caption file missing from raw/, skipped")
-            report.failed.append(video_id)
+            report.failed.append(item.id)
             continue
+
         segments = normalize.normalize_file(vtt, episode.caption_source)
         _write_transcript(paths.transcripts / f"{episode.slug}.jsonl", segments)
         transcript_hash = content_hash([s.to_dict() for s in segments])
         record.stages["fetch"] = StageRecord(
-            input_hash=video_id, output_hash=transcript_hash, tool=tool
+            input_hash=item.id, output_hash=transcript_hash, tool=tool
         )
 
-        item = work.item_for(paths, index, episode.slug)
-        if item.note.exists() and not force:
+        work_item = work.item_for(paths, index, episode.slug)
+        if work_item.note.exists() and not force:
             log(f"{label} — note exists")
             continue
 
         sections = segment.segment_episode(segments, episode.chapters)
         work.write_task(
-            item,
+            work_item,
             episode,
             transcript_hash,
             build_system(profile, prompt, episode),
@@ -168,7 +235,6 @@ def prepare_course(
         log(f"{label} — staged ({normalize.word_count(segments)} words)")
 
     manifest.save()
-    log(report.line())
     return report
 
 
@@ -208,7 +274,6 @@ def assemble_course(
         log(f"[{item.episode:02d}] {item.note.name}")
 
     manifest.save()
-    log(report.line())
     return report
 
 
@@ -243,13 +308,7 @@ def distill_pending(
             log(f"{label} — cached")
             continue
 
-        segments = [
-            Segment.from_dict(json.loads(line))
-            for line in (paths.transcripts / f"{episode.slug}.jsonl")
-            .read_text(encoding="utf-8")
-            .splitlines()
-            if line.strip()
-        ]
+        segments = _read_transcript(paths.transcripts / f"{episode.slug}.jsonl")
         sections = segment.segment_episode(segments, episode.chapters)
         try:
             result = distill_episode(
@@ -290,10 +349,11 @@ def build_course(
     model: str = DEFAULT_MODEL,
     force: bool = False,
     fetch_only: bool = False,
+    workers: int = DEFAULT_WORKERS,
     log: Logger = print,
 ) -> BuildReport:
     """Full unattended build through the API. Agent mode uses prepare + assemble."""
-    report = prepare_course(course_id, courses_dir, limit, only, force, log)
+    report = prepare_course(course_id, courses_dir, limit, only, force, workers, log)
     if fetch_only:
         return report
     distilled = distill_pending(course_id, courses_dir, model, force, log)

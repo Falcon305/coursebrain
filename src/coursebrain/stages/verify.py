@@ -91,7 +91,7 @@ def verify_course(course_id: str, courses_dir: Path | None = None) -> VerifyRepo
 
     for path in (paths.index_md, paths.concepts_md):
         if notes and not path.exists():
-            report.add(path.name, "missing — run 'course index'")
+            report.add(path.name, "missing — run 'coursebrain index'")
 
     return report
 
