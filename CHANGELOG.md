@@ -7,6 +7,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **`method` capability kind** — a fourth compositional layer for courses that teach *how to
+  do the work* rather than what is true, how to write, or in which language. Precedence is
+  stated: style never overrides a procedure that exists for a reason.
+- Four profiles: `craft` (hands-on skills, `method`), `method` (processes and systems,
+  `method`), `design` (visual and interaction design, `voice`), and `business` (`domain`).
+  Nine ship in total.
+- `coursebrain compose --method/-m` for the new layer.
+- Agent-followable setup instructions in the README, so pasting the repository URL into a
+  coding agent is enough to get installed and configured.
+- `scripts/bootstrap.sh` installs from GitHub and works without a clone.
+
+### Changed
+- Course libraries (`courses/`, `BRAIN.md`, generated skills) are no longer tracked. They
+  contain captions from third-party videos; the repository ships the tool, not a library.
+- The ASR regression fixture reproduces real YouTube caption structure byte for byte with
+  substituted words, so no third-party transcript is redistributed.
+
 ## [0.1.0] - 2026-07-25
 
 First release. Ingests a YouTube video, playlist, or channel; distills each episode into a
